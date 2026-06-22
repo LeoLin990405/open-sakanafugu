@@ -174,6 +174,8 @@ pytest tests/ -q   # or the project's own deterministic sanity command
 
 Each agent edits *different* files (Phase 1 split), so conflicts are rare; when one happens the report names the agent + SHA and you resolve it manually, the others already landed. **The integrate summary + sanity result go to the TASK log** (`--task`).
 
+**Enforce, don't trust** (borrowed from Lynn's orchestrator-side ownership): the file-split is only a *prompt* — a weak model may stray. Pass `--ownership <file>` (TSV `agent⇥owned-globs⇥forbidden-globs`, comma-separated; owned empty/`*` = unrestricted) and `integrate` validates each worker's diff *before* cherry-picking: a worker that touched files outside its `owned` set or matching a `forbidden` glob is flagged **`violation`** and held back whole (isolated like a conflict, exit non-zero), instead of blindly merged. Agents not in the manifest stay unrestricted.
+
 ### Phase 4: Review (coder = independent reviewer)
 
 ```bash

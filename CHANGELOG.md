@@ -16,10 +16,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/), versioning [SemV
 - `fanout selftest` 总断言数 119 → 198（16 套测试）。
 - **`scripts/check-docs.sh` 文档漂移闸门**（借鉴 `kunchenguid/lavish-axi` 的 `build:skill --check`，适配本仓双变体 SKILL.md 不做全量生成）：校验 README 收录每个 `fanout` 子命令、子命令数 / 测试套数声明 == 实际代码。进 `make ci` / `npm run ci` / CI 的 shell job。拦"加了工具但 README 数字过期"这类漂移。
 
+- **`fanout integrate` 越界检测(借鉴 Lynn 编排器侧 ownership)**：`--ownership <file>`(TSV `agent⇥owned-globs⇥forbidden-globs`)在 cherry-pick 前校验每个 worker 的 diff——改了 owned 之外 / 命中 forbidden glob 的文件 → 标 `violation` 整笔扣下(像冲突一样隔离, exit 非0),不盲合。"编排器侧强制、不信 prompt"。不在清单的 agent 不受限(向后兼容)。integrate 自测 19→29,总断言→259。
 - **自适应分配迭代:Thompson Sampling + 折扣遗忘(bandit 文献)**：`allocate <type> --sample` 把排序从贪心后验均值换成 **Thompson Sampling**(高斯近似 Beta 采样,探索少样本 agent、不早锁赢家;Agrawal-Goyal 2012,可用 `FANOUT_ALLOCATE_SEED` 固定种子);`allocate decay --gamma G [--type T]` 折扣陈旧统计(`s,f ×G`,模型升级后用;非平稳 bandit,Garivier-Moulines 2011)。默认仍均值贪心(向后兼容)。allocate 自测 32→41,总断言→249。
 - **自适应分配数据飞轮(verdict 自动喂回)**：`fanout dispatch --task-type T` 把 `(T, agent)` 记进 alloc ledger;`fanout allocate feed --from-ledger --result ok [--fail <返工的 agent>]` 整轮 verdict 一把喂进后验(也支持 `feed type:agent:result` 显式批量)。**agent 名归一化**(`cc-doubao`→bench 的 `doubao`)让经验落在与排名同一 key 上、飞轮真闭合。allocate 自测 21→32,dispatch +2,总断言→240。
 - **`fanout run` 跨阶段 run 状态门面(axi-inspired)**：借鉴 `kunchenguid/no-mistakes` 的 axi 思路,但不照搬 daemon 模型——引入轻量 'current run' 上下文(`.fanout-cache/run.meta` 记 active TASK+round),`run status` 把 TASK / cache barrier(N收M)/ loop decision / best 聚合成**一个机器可解析 JSON** 对象(`--human` 出人读摘要),`run next` 出 next-action 提示。让一次 fan-out run 可结构化查询/恢复,不改 operator 编排模型。新增 `fanout-run.sh` + 21 自测(含 JSON 合法性校验)。子命令 16→17,测试套 16→17,总断言→227。
 - **`fanout loop` finding 二分(auto-fix / ask-user)**：借鉴 `kunchenguid/no-mistakes` 的 finding 模型——`record --ask-user K` 标记 N 个 findings 里碰意图(架构/语义/取舍)的个数;`decide` 新增 **`ASK_USER`** 退出态(exit 11):碰意图的升级给人 approve/fix/skip,其余机械的 Claude 直接 Edit-patch。优先级低于 ESCALATE_MAX/NONCONV。loop 自测 24→32。selftest 总断言 198→206。
+
+### Changed
+- **README(中英)重构**:`fanout` CLI 表从平铺 17 行 → 按流水线阶段分组（Setup & 侦察 / Plan & 路由 / Dispatch & 收集 / Integrate·review·loop / 观测 & 维护），更易扫读;"为什么"+设计原则补**自适应路由**(贝叶斯 bandit)和 **docs-match-code 门**;致谢补 `kunchenguid/no-mistakes`+`lavish-axi`(finding 二分/run 门面/漂移门)与多臂 bandit 文献(Thompson Sampling、折扣 bandit)。fanout 脚本审计确认风格已一致(shebang/`set -uo pipefail`/`die()`/help 范围),无 churn。
 
 ### Fixed
 - **`fanout fleet status` / `preflight` 假就绪**：旧版只 grep `health` / `state`，会被 `mount_state: unmounted` 和 `desired_state: running`（配置意图 ≠ 实际挂载）假命中 → 假 ready/GO → 派活卡进空队列。改成认 `^mount_state:[[:space:]]*mounted`，加 unmounted / desired_state 两个回归测试。

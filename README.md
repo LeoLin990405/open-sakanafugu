@@ -3,7 +3,7 @@
 [![CI](https://github.com/LeoLin990405/cn-cc-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/LeoLin990405/cn-cc-workflow/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518.18-339933.svg)](package.json)
-[![Tests](https://img.shields.io/badge/tests-249%20passing-success.svg)](orchestration/fanout)
+[![Tests](https://img.shields.io/badge/tests-259%20passing-success.svg)](orchestration/fanout)
 
 **English | [简体中文](README_ZH.md)**
 
@@ -38,6 +38,7 @@ Small / cheap models fail when an agent shows them *every* tool, memory, rule an
 - **Bounded self-correction** — a review-fix loop with deterministic gate, keep-best, and meta-reflection on non-convergence (informed by Self-Refine / Reflexion / loop-engineering research).
 - **Context isolation** — each task runs in a *workspace* that exposes only the prompt, tools, memory and model it needs.
 - **Completeness guarantee** — a fan-in barrier: N tasks dispatched ⇒ N must return before the round advances.
+- **Adaptive routing** — the model-allocation table is a Bayesian bandit: it starts from a hand-tuned prior and learns from each review verdict which model wins which task type (Thompson-Sampling exploration, decay on model upgrades) — a training-free analogue of a learned coordinator.
 
 ---
 
@@ -144,28 +145,50 @@ The installer copies the skill plus all `fanout` tools, workspaces and templates
 
 ## The `fanout` CLI
 
-`orchestration/fanout/fanout` is the single entry point. Run `fanout help` for the full list.
+`orchestration/fanout/fanout` is the single entry point — one bash CLI any agent (or you) can drive. Run `fanout help` for the full list; the **17 subcommands** group by where they sit in the pipeline.
+
+**Setup & recon**
 
 | Command | What it does |
 |---|---|
 | `fanout doctor` | Detect installed agents/CLIs + configured APIs → recommend a workflow |
-| `fanout fleet status\|up\|down` | Bring up / check / stop the ccb fleet — strips `CLAUDE_CODE_*` (avoids OAuth false-401) + starts panes in detached tmux |
-| `fanout preflight [cfg]` | Go/no-go gate: deps · ccbd alive · ccb.config sanity · **no-Gemini guard** · `--probe` endpoint liveness |
-| `fanout task new\|log\|done` | Scaffold / log / close a TASK file |
-| `fanout allocate <type> [--top] [--sample]` · `record`·`feed`·`stats`·`reset`·`decay` | Recommended model for a task type — **bench prior + battle-tested posterior** (Beta-Bernoulli): cold-start = the static bench order, drifts as you `record`/`feed` verdicts. **`feed --from-ledger`** closes a data flywheel (`dispatch --task-type` logs `(type, agent)`, one `feed` after the round updates routing). **`--sample`** = Thompson Sampling (explores under-sampled agents, won't lock onto an early winner; Agrawal-Goyal 2012); **`decay --gamma G`** discounts stale stats after a model upgrade (Garivier-Moulines 2011) |
-| `fanout workspace list\|show\|model\|context <ws>` | Per-task **context isolation** — assemble `System + Workspace + Tools + Memory + History` |
-| `fanout experience add\|list\|recall\|show <ws>` | **Experience memory** — completed work → reusable method → sanitized → recalled into context |
-| `fanout template <name> [--set K=V]` | Render a prompt template (`impl` / `analysis` / `review`) |
-| `fanout dispatch <target> [--harness ccb\|codex\|opencode] [--workspace ws] [--template n] [--task-type T]` | Dispatch to an implementer on **any harness** (ccb=Claude Code fleet / codex / opencode): render → run → log; `--task-type` feeds the allocation flywheel |
-| `fanout cache init\|put\|fail\|barrier\|collect\|resume\|...` | Result cache + **fan-in barrier** (dispatch N ⇒ return N) + timing + resume |
-| `fanout integrate --work <repo> --agents "a b"` | **Phase 3** — cherry-pick each worktree onto `main` with **conflict isolation**: a conflicting agent is `--abort`ed & reported (keeps `main` clean), the rest still land |
-| `fanout summary <round> [--task f]` | Round observability summary (status + elapsed) |
+| `fanout fleet status\|up\|down` | Bring up / check / stop the ccb fleet — strips `CLAUDE_CODE_*` (avoids OAuth false-401), panes in detached tmux; readiness = `mount_state: mounted` (not config intent) |
+| `fanout preflight [cfg]` | Go/no-go gate: deps · ccbd mounted · ccb.config sanity · **no-Gemini guard** · `.ccb/` gitignored · `--probe` endpoint liveness |
+
+**Plan & route**
+
+| Command | What it does |
+|---|---|
+| `fanout task new\|log\|done` | Scaffold / log / close a TASK file (the audit trail) |
 | `fanout plan "<goal>" [--models a,b,c]` | **Planning panel** — fan a goal decomposition out to several models |
+| `fanout allocate <type> [--top] [--sample]` · `record`·`feed`·`stats`·`reset`·`decay` | **Learning router** (Beta-Bernoulli): static bench prior + verdict posterior. `feed --from-ledger` closes a flywheel (`dispatch --task-type` logs `(type, agent)`, one `feed`/round updates it); `--sample` = Thompson Sampling (explores under-sampled agents; Agrawal-Goyal 2012); `decay` discounts stale stats after a model upgrade (Garivier-Moulines 2011) |
+| `fanout workspace list\|show\|model\|context <ws>` | Per-task **context isolation** — assemble `System + Workspace + Tools + Memory + History` |
+| `fanout template <name> [--set K=V]` | Render a prompt template (`impl` / `analysis` / `review`) |
 | `fanout goal template\|show\|check <spec>` | **Goal mode** — declarative target + deterministic acceptance gate |
-| `fanout loop init\|record\|decide\|status` | **Phase 5** review-fix **state machine** — `record` each round (classify Findings via `--ask-user K`) → `decide` returns the exit state (DONE / CONFIRM / CONTINUE / **ASK_USER** / ESCALATE_MAX / ESCALATE_NONCONV); keep-best auto-maintained. `ASK_USER` = auto-patch mechanical Findings but escalate intent-touching ones to the human (borrowed from no-mistakes) |
-| `fanout run set\|round\|status\|next\|clear` | **Run state facade** (axi-inspired) — a lightweight "current run" context aggregating cross-phase state (active TASK / round / cache barrier N-back-of-M / loop decision / best) into **one machine-parsable JSON** object, so a run is queryable/resumable without changing the operator-driven model |
+
+**Dispatch & gather**
+
+| Command | What it does |
+|---|---|
+| `fanout dispatch <target> [--harness ccb\|codex\|opencode] [--workspace ws] [--task-type T]` | Dispatch to an implementer on **any harness** (ccb / codex / opencode): render → run → log; `--task-type` feeds the routing flywheel |
+| `fanout cache init\|put\|fail\|barrier\|collect\|resume\|...` | Result cache + **fan-in barrier** (dispatch N ⇒ return N) + timing + resume |
+
+**Integrate · review · loop**
+
+| Command | What it does |
+|---|---|
+| `fanout integrate --work <repo> --agents "a b" [--ownership <file>]` | **Phase 3** — cherry-pick each worktree onto `main` with **conflict isolation** (a conflicting agent is aborted & reported, the rest still land). `--ownership` enforces **out-of-bounds detection** (owned / forbidden globs per agent): a worker that strays outside its files is flagged `violation` and held back — *enforce, don't trust the prompt* (borrowed from Lynn) |
+| `fanout loop init\|record\|decide\|status` | **Phase 5** review-fix **state machine** — `record` each round (`--ask-user K` classifies Findings) → `decide` returns one exit state: DONE / CONFIRM / CONTINUE / **ASK_USER** / ESCALATE_MAX / ESCALATE_NONCONV; keep-best auto-maintained |
+| `fanout run set\|round\|status\|next\|clear` | **Run-state facade** (axi-inspired) — aggregate cross-phase state (TASK / round / barrier N-of-M / loop decision / best) into **one machine-parsable JSON** |
+| `fanout summary <round> [--task f]` | Round observability summary (status + elapsed) |
+
+**Observe & maintain**
+
+| Command | What it does |
+|---|---|
+| `fanout experience add\|list\|recall\|show <ws>` | **Experience memory** — completed work → reusable method → sanitized → recalled into context |
 | `fanout ccb-sync check\|adapt [--apply]` | Adapt after a ccb update (version drift · grafting check · ccbd restart) |
-| `fanout selftest` | Run all 17 test suites (249 assertions) |
+| `fanout selftest` | Run all 17 test suites (259 assertions) |
 
 ---
 
@@ -197,7 +220,9 @@ See [`docs/AGENT_TEAM.md`](docs/AGENT_TEAM.md) for multi-model planning and hier
 - **Bounded loop** — gate-first, keep-best, ≥2 confirmation passes, meta-reflect; capped, then escalate. Never loops forever, never hard-marks DONE.
 - **Cache-first + fan-in barrier** — every result is cached durably; N dispatched ⇒ N returned before the next round.
 - **Context isolation** — weaker models see only what the workspace needs.
+- **Adaptive routing, not static** — allocation is a Beta-Bernoulli bandit (bench prior + verdict posterior, Thompson-Sampling exploration); it self-improves from the loop's verdicts with no training.
 - **Keys stay out of the repo** — only `~/.config/cc-model-secrets.env`; the repo ships only `.example`. Pre-commit + CI scan blocks leaks.
+- **Docs match code** — a `check-docs` gate fails CI if the README's subcommands/counts drift from the actual `fanout` CLI.
 - **No Gemini** — review / second opinions go to Codex or a Chinese backend.
 
 ---
@@ -211,7 +236,7 @@ make ci          # = scan + lint + check-docs + test (CI-equivalent)
 make scan        # secret-leak gate (fingerprints + ccb.config placeholder check)
 make lint        # bash -n + shellcheck (.shellcheckrc)
 make check-docs  # docs-match-code gate: README subcommands/counts == the fanout CLI
-make test        # cn-plugin + fanout selftest (249 assertions)
+make test        # cn-plugin + fanout selftest (259 assertions)
 make doctor      # environment recon
 make help        # all targets
 
@@ -237,7 +262,8 @@ This workflow handles API keys. Hard rules (full policy in [`SECURITY.md`](SECUR
 
 - [**openai/codex-plugin-cc**](https://github.com/openai/codex-plugin-cc) (Apache-2.0) — the plugin architecture (`/cn:*` commands, agents, skills, companion scripts) that `orchestration/cn-plugin/` derives from.
 - [**Zleap-AI/Zleap-Agent**](https://github.com/Zleap-AI/Zleap-Agent) — inspiration for the **Workspace isolation** and **Experience memory** ideas (concepts only; code is independent, as Zleap is unlicensed).
-- The **Phase 5 loop** design draws on published work on agentic verification loops (Self-Refine, Reflexion, loop-engineering 2026).
+- [**kunchenguid/no-mistakes**](https://github.com/kunchenguid/no-mistakes) & [**lavish-axi**](https://github.com/kunchenguid/lavish-axi) (MIT) — the loop's **auto-fix vs ask-user** finding split + the **`run` state facade** (axi-style), and the **docs-match-code** drift gate (from `build:skill --check`).
+- The **Phase 5 loop** design draws on agentic verification-loop work (Self-Refine, Reflexion, loop-engineering 2026); the **adaptive router** on the multi-armed-bandit literature — Thompson Sampling (Agrawal & Goyal 2012), non-stationary/discounted bandits (Garivier & Moulines 2011).
 
 See [`NOTICE`](NOTICE) for attribution detail.
 

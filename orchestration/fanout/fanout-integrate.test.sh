@@ -70,6 +70,38 @@ mkwt cc-tasklog; echo x > "$W/.ccb/workspaces/cc-tasklog/t.txt"
 bash "$INT" --work "$W" --agents "cc-tasklog" --task "$TF" >/dev/null 2>&1
 ok "整合汇总写入 TASK 文件" 'grep -q "### Integrate" "$TF"'
 
+# ── 越界检测 (--ownership; 借 Lynn 编排器侧强制) ──
+mkwt cc-owner;  echo 1 > "$W/.ccb/workspaces/cc-owner/owned1.py"
+mkwt cc-stray;  echo 1 > "$W/.ccb/workspaces/cc-stray/owned2.py"; echo 1 > "$W/.ccb/workspaces/cc-stray/sneaky.py"
+mkwt cc-forbid; echo k > "$W/.ccb/workspaces/cc-forbid/secret.env"
+OWN="$TMP/ownership.tsv"
+printf 'cc-owner\towned1.py\t\ncc-stray\towned2.py\t\ncc-forbid\t*\t*.env\n' > "$OWN"
+
+out="$(bash "$INT" --work "$W" --agents "cc-owner" --ownership "$OWN")"; rc=$?
+ok "ownership: 守规 agent 正常整合" '[ "$rc" -eq 0 ] && [ -f "$W/owned1.py" ]'
+
+out="$(bash "$INT" --work "$W" --agents "cc-stray" --ownership "$OWN")"; rc=$?
+ok "ownership: 越界 agent → exit 非0" '[ "$rc" -ne 0 ]'
+ok "ownership: 报告标 violation + 越界文件" 'case "$out" in *"violation cc-stray"*sneaky.py*) true;; *) false;; esac'
+ok "ownership: 越界 → sneaky.py 没到 main" '[ ! -f "$W/sneaky.py" ]'
+ok "ownership: 越界 → owned2.py 也没整合 (整笔扣下)" '[ ! -f "$W/owned2.py" ]'
+
+out="$(bash "$INT" --work "$W" --agents "cc-forbid" --ownership "$OWN")"
+ok "ownership: forbidden glob(*.env) 命中 → violation" 'case "$out" in *"violation cc-forbid"*secret.env*) true;; *) false;; esac'
+
+# 违规不阻断守规者: stray(仍越界) + clean2(不在清单=不限) 一起
+mkwt cc-clean2; echo 1 > "$W/.ccb/workspaces/cc-clean2/owned3.py"
+out="$(bash "$INT" --work "$W" --agents "cc-stray cc-clean2" --ownership "$OWN")"
+ok "违规不阻断: cc-clean2 仍整合" '[ -f "$W/owned3.py" ]'
+ok "混合汇总含 1 violation" 'case "$out" in *"1 violation"*) true;; *) false;; esac'
+
+# 不在 ownership 清单 = 不限 (向后兼容)
+mkwt cc-free; echo 1 > "$W/.ccb/workspaces/cc-free/anything.py"
+out="$(bash "$INT" --work "$W" --agents "cc-free" --ownership "$OWN")"; rc=$?
+ok "不在 ownership 清单 → 不限, 正常整合" '[ "$rc" -eq 0 ] && [ -f "$W/anything.py" ]'
+
+bash "$INT" --work "$W" --agents x --ownership /no/such/file >/dev/null 2>&1; ok "ownership 文件不存在 → 非0" '[ "$?" -ne 0 ]'
+
 # ── 用法错 ──
 bash "$INT" --agents "x" >/dev/null 2>&1; ok "缺 --work → 非0" '[ "$?" -ne 0 ]'
 bash "$INT" --work "$W" >/dev/null 2>&1; ok "缺 --agents → 非0" '[ "$?" -ne 0 ]'
