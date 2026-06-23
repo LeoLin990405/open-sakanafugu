@@ -17,11 +17,21 @@ export type { Artifact, ArtifactKind } from './domain/artifact.js';
 export type { Deadline, RoundManifest } from './domain/round.js';
 export { stateOf, isComplete, pendingKeys, tally } from './domain/round.js';
 export type { PhaseName, RunEvent, Run } from './domain/run.js';
+export type {
+  VerdictKind,
+  LoopState,
+  LoopRound,
+  LoopConfig,
+  LoopDecision,
+  LoopExitCode,
+} from './domain/loop.js';
+export { decideLoop, bestRound } from './domain/loop-decide.js';
 
 // Domain — ports
 export type { ResultStore } from './domain/ports/result-store.js';
 export type { Barrier } from './domain/ports/barrier.js';
 export type { RunStore, RunPatch } from './domain/ports/run-store.js';
+export type { ReviewLoop } from './domain/ports/review-loop.js';
 
 // Infra — injected IO
 export type { Clock } from './infra/clock.js';
@@ -36,6 +46,7 @@ export { FsResultStore } from './adapters/store/fs-result-store.js';
 export { InMemoryRunStore } from './adapters/store/in-memory-run-store.js';
 export { FsRunStore } from './adapters/store/fs-run-store.js';
 export { PersistentBarrier } from './adapters/barrier/persistent-barrier.js';
+export { PersistentReviewLoop } from './adapters/loop/persistent-review-loop.js';
 
 // App helpers
 export { waitForRound } from './app/wait-for-round.js';
