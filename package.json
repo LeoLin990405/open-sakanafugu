@@ -17,6 +17,7 @@
   "scripts": {
     "test:plugin": "node --check orchestration/cn-plugin/cn/scripts/cn-companion.mjs && node orchestration/cn-plugin/cn/scripts/cn-companion.test.mjs",
     "test:fanout": "bash orchestration/fanout/fanout selftest",
+    "test:engine": "cd engine && npm ci && npm run check",
     "test": "npm run test:plugin && npm run test:fanout",
     "scan": "bash scripts/scan-secrets.sh",
     "lint:shell": "bash scripts/check-shell.sh",
