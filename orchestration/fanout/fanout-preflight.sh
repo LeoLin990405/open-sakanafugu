@@ -7,6 +7,8 @@
 #   usage: fanout-preflight.sh [ccb.config path]
 #   env:  CCB_WORK = ccb project root (used to ping ccbd + locate .ccb/ccb.config)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 
 fail=0; warn=0
 ok(){ echo "  ✓ $1"; }
@@ -25,8 +27,14 @@ _probe_one(){
   local a="$1" u="$2" k="$3" code
   [ -n "$a" ] && [ -n "$u" ] || return 0
   case "$k" in ''|'<'*'>') wn "probe $a: no real key, skip"; return 0;; esac
-  code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 12 "$u/v1/models" \
-    -H "x-api-key: $k" -H "authorization: Bearer $k" 2>/dev/null)"
+  # cache the HTTP code (never the key) for a short window so repeated preflights
+  # don't re-hit the network; TTL tunable via FANOUT_PROBE_TTL (0 ≈ always re-probe).
+  code="$(fcache_get "probe_$a" "${FANOUT_PROBE_TTL:-20}" 2>/dev/null)"
+  if [ -z "$code" ]; then
+    code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 12 "$u/v1/models" \
+      -H "x-api-key: $k" -H "authorization: Bearer $k" 2>/dev/null)"
+    [ -n "$code" ] && printf '%s' "$code" | fcache_put "probe_$a"
+  fi
   if [ "$code" = "200" ]; then ok "probe $a: 200 alive"; else no "probe $a: HTTP ${code:-timeout} (endpoint/key error)"; fi
 }
 probe_config(){

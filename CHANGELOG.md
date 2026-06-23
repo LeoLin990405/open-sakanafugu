@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/), versioning [SemV
 
 ## [Unreleased]
 
+### Changed
+- **Engineering refactor — shared lib layer + caching (4 Codex-reviewed iterations)**: extracted `fanout-lib.sh` (`die`/`warn`/`say`, status symbols, portable `fx_mtime`, an atomic TTL cache layer `fcache_get`/`put`/`clear`, and `fx_cache_root`) and `fanout-testlib.sh` (`pass`/`fail` counters + `ok`/`skip`/`tdone`) — every tool/suite now sources them instead of copy-pasting (−16 duplicate `die()`, −18 test-boilerplate copies, −5 inline `CACHE_ROOT`). `preflight --probe` now caches endpoint liveness through the TTL cache (the HTTP code only, never the key; `FANOUT_PROBE_TTL`, default 20s); diagnostics (`doctor`/`fleet status`) stay deliberately un-cached so they read fresh. selftest total assertions 312 -> 313.
+
+### Fixed
+- **`fleet-launch.py` reports out-of-ptys to the caller**: a status pipe makes the launcher exit `127` with a clean message (no traceback) when the host is out of pty devices, instead of a silent `0`; the parent waits only for the 1-byte launch status, never for the long-running detached worker. The 3 pty-dependent fleet checks now auto-`skip` (rather than fail) when ptys are unavailable, so `fanout selftest` is deterministically green regardless of host pty pressure.
+
 ### Added
 - **`docs/INTEGRATIONS.md`**: the **stable contract** for consuming fugue as an execution engine from a higher-level framework (fanout CLI / `--harness` dispatch / backends / allocate / cache / fleet / preflight / no-Gemini); CivAgent integration roadmap (two repos with clean dependencies, not a flat merge).
 - **Multi-harness adapters (the foundation for civagent dependency integration)**: `AGENTS.md` cross-harness entry point (read by Claude Code / Codex / OpenCode alike); `fanout dispatch --harness ccb|codex|opencode` — selectable dispatch executor (ccb=Claude Code cc-* clones / codex=codex exec / opencode=opencode run), where `<target>` means different things per harness; `FANOUT_CODEX`/`FANOUT_OPENCODE` can be stubbed. dispatch self-tests +3 (codex/opencode/unknown harness).

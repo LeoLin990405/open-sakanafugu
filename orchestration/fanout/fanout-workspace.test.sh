@@ -3,8 +3,8 @@
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 W="$HERE/fanout-workspace.sh"
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 echo "fanout-workspace tests"
 
@@ -31,5 +31,4 @@ ok "context --task injects task" 'o=$(bash "$W" context code --task "doX"); grep
 bash "$W" context nope >/dev/null 2>&1; ok "unknown workspace → non-0" '[ "$?" -ne 0 ]'
 o=$(bash "$W" 2>&1); ok "no subcommand → shows help(incl list)" 'grep -q list <<<"$o"'
 
-echo "fanout-workspace: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

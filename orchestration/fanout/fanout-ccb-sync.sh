@@ -12,11 +12,12 @@
 #                    without --apply = dry-run (report only, does not touch ccbd / does not write stamp)
 #   env: FANOUT_CCB(default ccb) / CCB_WORK / CCB_CLAUDE / FANOUT_STATE(default ~/.config/fanout) / CCB_INSTALL(override install path)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CCB="${FANOUT_CCB:-ccb}"
 STATE="${FANOUT_STATE:-$HOME/.config/fanout}"
 STAMP="$STATE/ccb-version"
-die(){ echo "fanout-ccb-sync: $*" >&2; exit 2; }
 
 ccb_ver(){ "$CCB" version 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1; }
 ccb_install(){

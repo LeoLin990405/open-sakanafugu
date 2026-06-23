@@ -7,8 +7,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 C="$HERE/fanout-cache.sh"; D="$HERE/fanout-dispatch.sh"; S="$HERE/fanout-summary.sh"; AL="$HERE/fanout-allocate.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export FANOUT_CACHE="$TMP/cache"
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 # stub ccb (used by dispatch)
 printf '#!/usr/bin/env bash\nexit 0\n' > "$TMP/ccb"; chmod +x "$TMP/ccb"; export FANOUT_CCB="$TMP/ccb"
@@ -50,5 +50,4 @@ ok "summary done=3" 'echo "$out" | grep -q "done=3"'
 # 8) collect 3 results
 ok "collect emits 3 results" '[ "$(bash "$C" collect 1 | grep -c .)" -eq 3 ]'
 
-echo "fanout-e2e: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

@@ -20,13 +20,14 @@
 #   env: FANOUT_ALLOCATION(bench table) FANOUT_ALLOCATION_STATS(stats file) FANOUT_ALLOCATION_LEDGER(ledger)
 #        FANOUT_ALLOCATE_KAPPA(prior strength, default 4) FANOUT_ALLOCATE_SEED(TS sampling seed, for tests) FANOUT_STATE
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TBL="${FANOUT_ALLOCATION:-$HERE/allocation.tsv}"
 STATS="${FANOUT_ALLOCATION_STATS:-${FANOUT_STATE:-$HOME/.config/fanout}/allocation-stats.tsv}"
 LEDGER="${FANOUT_ALLOCATION_LEDGER:-${FANOUT_STATE:-$HOME/.config/fanout}/alloc-ledger.tsv}"
 KAPPA="${FANOUT_ALLOCATE_KAPPA:-4}"
 UNLISTED_PRIOR=0.15
-die(){ echo "fanout-allocate: $*" >&2; exit 2; }
 [ -f "$TBL" ] || die "no allocation table $TBL"
 
 bench_list(){ grep -vE '^[[:space:]]*#' "$TBL" | awk -F'\t' -v k="$1" '$1==k{print $2; f=1} END{exit !f}'; }

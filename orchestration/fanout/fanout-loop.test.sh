@@ -8,8 +8,8 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export FANOUT_CACHE="$TMP/cache"
 cd "$TMP" || exit 1
 
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 # decide first-line token; standalone function to avoid pipefail eating the exit code
 tok(){ bash "$LOOP" decide 2>/dev/null | head -1; }
 ec(){ bash "$LOOP" decide >/dev/null 2>&1; echo $?; }
@@ -110,5 +110,4 @@ bash "$LOOP" record 1 --gate pass --verdict NEEDSFIX --findings 2 --ask-user -1 
 bash "$LOOP" init --max 3 >/dev/null; bash "$LOOP" record 1 --gate pass --verdict NEEDSFIX --findings 2 --ask-user 1 >/dev/null
 ok "status has ask-user column" 'case "$(bash "$LOOP" status)" in *ask-user*) true;; *) false;; esac'
 
-echo "fanout-loop: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

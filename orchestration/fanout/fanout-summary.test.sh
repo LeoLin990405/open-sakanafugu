@@ -5,8 +5,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 S="$HERE/fanout-summary.sh"; C="$HERE/fanout-cache.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export FANOUT_CACHE="$TMP/cache"
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 echo "fanout-summary tests"
 echo r > "$TMP/a.md"
@@ -28,5 +28,4 @@ ok "--task writes summary into file" 'grep -q "Round 1 summary" "$TASKF"'
 # round not init → non-0
 bash "$S" 9 >/dev/null 2>&1; ok "round not init → non-0" '[ "$?" -ne 0 ]'
 
-echo "fanout-summary: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

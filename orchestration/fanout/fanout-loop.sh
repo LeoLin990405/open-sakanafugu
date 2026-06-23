@@ -29,13 +29,14 @@
 #
 # Exit codes: 0=DONE / 10=auto-work(CONTINUE|CONFIRM) / 11=need human judgment(ASK_USER) / 20=escalate(ESCALATE_*) / 2=usage error
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 
-CACHE_ROOT="${FANOUT_CACHE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.fanout-cache}"
+CACHE_ROOT="$(fx_cache_root)"
 LDIR="$CACHE_ROOT/loop"
 META="$LDIR/meta"
 ROUNDS="$LDIR/rounds.tsv"
 
-die(){ echo "fanout-loop: $*" >&2; exit 2; }
 meta_get(){ sed -n "s/^$1=//p" "$META" 2>/dev/null | head -1; }
 meta_set(){ # key value — atomic single-line rewrite
   local k="$1" v="$2" tmp; tmp="$(mktemp)"

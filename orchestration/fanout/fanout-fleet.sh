@@ -13,12 +13,13 @@
 #   env: CCB_WORK(default ~/Projects/ccb-test) / CCB_CLAUDE(default ~/Projects/ccb-claude-only)
 #        CCB_CLAUDE_PREFIX(claude pool start prefix, default "CLAUDE_START_CMD=claude ") / FANOUT_CCB(test stub)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CCB="${FANOUT_CCB:-ccb}"
 WORK="${CCB_WORK:-$HOME/Projects/ccb-test}"
 CLAUDE_PROJ="${CCB_CLAUDE:-$HOME/Projects/ccb-claude-only}"
 CLAUDE_PREFIX="${CCB_CLAUDE_PREFIX:-CLAUDE_START_CMD=claude }"
-die(){ echo "fanout-fleet: $*" >&2; exit 2; }
 
 # Which start prefix this project uses (claude pool needs CLAUDE_START_CMD)
 prefix_for(){ [ "$1" = "$CLAUDE_PROJ" ] && printf '%s' "$CLAUDE_PREFIX" || printf ''; }

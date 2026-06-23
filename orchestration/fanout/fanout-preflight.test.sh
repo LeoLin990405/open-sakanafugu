@@ -5,8 +5,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 P="$HERE/fanout-preflight.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 echo "fanout-preflight tests"
 
@@ -66,5 +66,4 @@ ok ".ccb/ gitignored → ok" 'case "$out_ok" in *"gitignored"*) true;; *) false;
 CCB_WORK="$GW" bash "$P" --config-only "$TMP/clean.config" >/dev/null 2>&1
 ok ".ccb gitignore check is warn level, does not block GO" '[ "$?" -eq 0 ]'
 
-echo "fanout-preflight: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

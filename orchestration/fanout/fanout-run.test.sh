@@ -6,8 +6,8 @@ R="$HERE/fanout-run.sh"; CACHE="$HERE/fanout-cache.sh"; LOOP="$HERE/fanout-loop.
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export FANOUT_CACHE="$TMP/cache"
 cd "$TMP" || exit 1
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 js(){ bash "$R" status; }   # JSON
 
 echo "fanout-run tests"
@@ -64,5 +64,4 @@ bash "$R" next >/dev/null 2>&1; ok "next non-0 after clear" '[ "$?" -ne 0 ]'
 # unknown subcommand
 bash "$R" bogus >/dev/null 2>&1; ok "unknown subcommand → non-0" '[ "$?" -ne 0 ]'
 
-echo "fanout-run: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

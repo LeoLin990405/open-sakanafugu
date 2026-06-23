@@ -6,8 +6,9 @@
 #   done <task-file>              Status: DONE + Completed time
 #   env: TASKS = task directory (default ~/.claude/tasks)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 TASKS="${TASKS:-$HOME/.claude/tasks}"
-die(){ echo "fanout-task: $*" >&2; exit 2; }
 ts(){  TZ="${FANOUT_TZ:-Asia/Shanghai}" date '+%Y-%m-%d %H:%M'; }
 day(){ TZ="${FANOUT_TZ:-Asia/Shanghai}" date '+%Y-%m-%d'; }
 sed_inplace(){ # across GNU/BSD sed

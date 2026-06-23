@@ -18,7 +18,8 @@
 # Each agent: out-of-bounds check → worktree has uncommitted changes → add+commit(as the agent) → main repo cherry-pick.
 # Exit codes: 0 = all picked/no-change / 1 = conflict or out-of-bounds(isolated, listed in report) / 2 = usage error
 set -uo pipefail
-die(){ echo "fanout-integrate: $*" >&2; exit 2; }
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 
 work=""; agents=""; ws_parent=".ccb/workspaces"; onconflict="abort"; ownership=""; task=""; dry=0
 while [ "$#" -gt 0 ]; do

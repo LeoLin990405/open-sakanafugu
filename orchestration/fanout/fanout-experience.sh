@@ -8,8 +8,9 @@
 #   show <ws> <slug>                      print one
 #   env: FANOUT_EXPERIENCE (default ${FANOUT_STATE:-~/.config/fanout}/experience)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 STORE="${FANOUT_EXPERIENCE:-${FANOUT_STATE:-$HOME/.config/fanout}/experience}"
-die(){ echo "fanout-experience: $*" >&2; exit 2; }
 # redaction fingerprint (same as scan-secrets): plaintext keys not allowed into the experience store
 SECRET_RE='sk-[A-Za-z0-9_-]{20,}|tp-[a-z0-9]{30,}|[0-9a-f]{32}\.[A-Za-z0-9]{16}'
 slugify(){ printf '%s' "$1" | tr ' /' '--' | tr -d '"'\''`'; }   # drop quotes/backticks, space/slash→-

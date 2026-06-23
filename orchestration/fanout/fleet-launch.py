@@ -30,22 +30,61 @@ def main() -> int:
     for k in [k for k in list(os.environ) if k.startswith("CLAUDE_CODE")]:
         del os.environ[k]
 
-    # 2) daemonize: parent returns immediately; child detaches from the tty session
-    if os.fork() > 0:
-        return 0
+    # 2) status pipe: the daemon child reports whether the launch actually started,
+    #    so the CALLER sees a nonzero exit on failure (e.g. out of ptys) even though
+    #    the worker then runs detached. The parent waits only for the 1-byte status —
+    #    never for the long-running worker itself.
+    r, w = os.pipe()
+    try:
+        pid = os.fork()
+    except OSError as e:
+        os.close(r)
+        os.close(w)
+        sys.stderr.write("fleet-launch: fork failed (%s)\n" % e)
+        return 127
+    if pid > 0:
+        os.close(w)
+        status = b""
+        try:
+            status = os.read(r, 1)   # unblocks the moment the child signals (right after pty.fork)
+        except OSError:
+            pass
+        os.close(r)
+        return 0 if status == b"1" else 127
+
+    # 3) child: detach from the tty session, then pty.fork the worker.
+    #    Degrade gracefully (clean message, not a traceback) if the host is out of ptys.
+    os.close(r)
     os.chdir(project)
     os.setsid()
-
-    # 3) pty.fork: grandchild exec's the target command inside the pty
-    pid, fd = pty.fork()
+    try:
+        pid, fd = pty.fork()
+    except OSError as e:
+        try:
+            os.write(w, b"0")
+        except OSError:
+            pass
+        os.close(w)
+        sys.stderr.write("fleet-launch: pty.fork failed (%s) — host may be out of pty devices\n" % e)
+        os._exit(127)
     if pid == 0:
+        # grandchild: exec the target command inside the pty (drop the status pipe).
+        try:
+            os.close(w)
+        except OSError:
+            pass
         try:
             os.execvp(cmd[0], cmd)
         except OSError as e:
             sys.stderr.write("exec %s failed: %s\n" % (cmd[0], e))
             os._exit(127)
 
-    # 4) daemon drains pty output, ends when target exits
+    # 4) daemon: signal success to the caller, then drain pty output until the worker exits.
+    try:
+        os.write(w, b"1")
+    except OSError:
+        pass
+    os.close(w)
     try:
         while True:
             try:

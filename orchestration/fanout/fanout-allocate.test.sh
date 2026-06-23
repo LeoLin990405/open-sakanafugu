@@ -7,8 +7,8 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 # hermetic: isolate the real stats file so backward-compat asserts test "cold start" (empty stats = bench order)
 export FANOUT_ALLOCATION_STATS="$TMP/stats.tsv"
 export FANOUT_ALLOCATION_LEDGER="$TMP/ledger.tsv"
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 echo "fanout-allocate tests"
 
@@ -115,5 +115,4 @@ bash "$A" decay --gamma 0.5 --type code >/dev/null
 ok "decay --type code: code 2→1" 'case "$(bash "$A" stats code)" in *"doubao"*"1/0"*) true;; *) false;; esac'
 ok "decay --type code: sql unchanged 2/0" 'case "$(bash "$A" stats sql)" in *"glm"*"2/0"*) true;; *) false;; esac'
 
-echo "fanout-allocate: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

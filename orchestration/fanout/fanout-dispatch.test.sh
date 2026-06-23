@@ -4,8 +4,8 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 D="$HERE/fanout-dispatch.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 # stub ccb: record argv + stdin to file
 cat > "$TMP/ccb" <<EOF
@@ -70,5 +70,4 @@ bash "$D" x --harness bogus --prompt-file "$TMP/p.md" >/dev/null 2>&1; ok "unkno
 bash "$D" >/dev/null 2>&1; ok "no agent → non-0" '[ "$?" -ne 0 ]'
 bash "$D" cc-x >/dev/null 2>&1; ok "no prompt source → non-0" '[ "$?" -ne 0 ]'
 
-echo "fanout-dispatch: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

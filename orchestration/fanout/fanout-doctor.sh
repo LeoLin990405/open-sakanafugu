@@ -7,10 +7,12 @@
 #   usage: scripts/fanout-doctor.sh         # human-readable report
 #         scripts/fanout-doctor.sh --quiet # conclusion line only
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 
 QUIET=0; [ "${1:-}" = "--quiet" ] && QUIET=1
-say()  { [ "$QUIET" -eq 1 ] || printf '%s\n' "$*"; }
-g="✓"; x="—"
+say()  { [ "$QUIET" -eq 1 ] || printf '%s\n' "$*"; }   # QUIET-aware override of lib say()
+g="$FX_OK"; x="$FX_NO"
 
 # ── whether a key is configured (var name present in live env or common rc files; never reads value) ──
 RCFILES=(

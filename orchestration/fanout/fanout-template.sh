@@ -3,9 +3,10 @@
 #   usage: fanout-template.sh <name> [--set KEY=VALUE ...]
 #   {{KEY}} not --set is left verbatim (for Claude to fill)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TPLDIR="$HERE/templates"
-die(){ echo "fanout-template: $*" >&2; exit 2; }
 
 name="${1:-}"; shift || true
 [ -n "$name" ] || die "usage: <name> [--set KEY=VALUE ...]  (available: $(ls "$TPLDIR" 2>/dev/null | sed 's/\.md$//' | tr '\n' ' '))"

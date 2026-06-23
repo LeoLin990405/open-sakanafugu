@@ -10,10 +10,11 @@
 #   env: FANOUT_CCB / FANOUT_CODEX / FANOUT_OPENCODE (default ccb/codex/opencode; test may stub)
 #        FANOUT_ALLOCATION_LEDGER (alloc ledger path, consistent with allocate)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CCB="${FANOUT_CCB:-ccb}"
 LEDGER="${FANOUT_ALLOCATION_LEDGER:-${FANOUT_STATE:-$HOME/.config/fanout}/alloc-ledger.tsv}"
-die(){ echo "fanout-dispatch: $*" >&2; exit 2; }
 
 agent="${1:-}"; shift || true
 [ -n "$agent" ] || die "usage: <agent> (--template <name> [--set K=V] | --prompt-file <f>) [--task <file>]"

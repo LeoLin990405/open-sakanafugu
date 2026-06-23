@@ -5,8 +5,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INT="$HERE/fanout-integrate.sh"
 GIT="git -c user.email=t@t -c user.name=t -c commit.gpgsign=false -c init.defaultBranch=main"
 
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 echo "fanout-integrate tests"
 
@@ -107,5 +107,4 @@ bash "$INT" --agents "x" >/dev/null 2>&1; ok "missing --work → non-0" '[ "$?" 
 bash "$INT" --work "$W" >/dev/null 2>&1; ok "missing --agents → non-0" '[ "$?" -ne 0 ]'
 bash "$INT" --work "$W" --agents x --onconflict bogus >/dev/null 2>&1; ok "invalid onconflict → non-0" '[ "$?" -ne 0 ]'
 
-echo "fanout-integrate: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

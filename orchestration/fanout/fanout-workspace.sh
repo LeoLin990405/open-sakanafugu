@@ -7,9 +7,10 @@
 #   model <name>                resolve model (models: @bench:<type> goes through allocation)
 #   context <name> [--task T]   assemble and print layered context (prompt prefix fed to this station's agent)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WSDIR="${FANOUT_WORKSPACES:-$HERE/workspaces}"
-die(){ echo "fanout-workspace: $*" >&2; exit 2; }
 wsfile(){ printf '%s/%s.workspace' "$WSDIR" "$1"; }
 field(){ sed -n "s/^$1:[[:space:]]*//p" "$2" | head -1; }
 

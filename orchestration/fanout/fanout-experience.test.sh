@@ -5,8 +5,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 E="$HERE/fanout-experience.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export FANOUT_EXPERIENCE="$TMP/exp"
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 echo "fanout-experience tests"
 
@@ -45,5 +45,4 @@ ok "show prints record" 'o=$(bash "$E" show code defensive-copy-trick); grep -q 
 ctx="$(bash "$HERE/fanout-workspace.sh" context code)"
 ok "workspace context injects experience" 'echo "$ctx" | grep -q "defensive copy"'
 
-echo "fanout-experience: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

@@ -23,10 +23,11 @@
 #
 # Exit codes: 0 success / 1 barrier unmet or failed / 2 usage error
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 
-CACHE_ROOT="${FANOUT_CACHE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.fanout-cache}"
+CACHE_ROOT="$(fx_cache_root)"
 
-die()  { echo "fanout-cache: $*" >&2; exit 2; }
 rdir() { printf '%s/round-%s' "$CACHE_ROOT" "$1"; }
 
 _manifest() { cat "$(rdir "$1")/manifest.tsv" 2>/dev/null; }

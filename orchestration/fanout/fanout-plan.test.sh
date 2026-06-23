@@ -5,8 +5,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 P="$HERE/fanout-plan.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export FANOUT_CACHE="$TMP/cache"
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 # stub ccb: record the agent called($2), consume stdin
 printf '#!/usr/bin/env bash\necho "$2" >> "%s"\ncat >/dev/null\n' "$TMP/calls" > "$TMP/ccb"
@@ -25,5 +25,4 @@ ok "default models = 3 families" '[ "$(grep -c . "$TMP/calls")" -eq 3 ]'
 
 bash "$P" >/dev/null 2>&1; ok "no goal → non-0" '[ "$?" -ne 0 ]'
 
-echo "fanout-plan: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

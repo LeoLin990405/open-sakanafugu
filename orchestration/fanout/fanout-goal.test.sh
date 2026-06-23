@@ -4,8 +4,8 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 G="$HERE/fanout-goal.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 echo "fanout-goal tests"
 
@@ -30,5 +30,4 @@ bash "$G" check "$TMP/nogate.spec" >/dev/null 2>&1; ok "no gate line → non-0" 
 bash "$G" check /no/such >/dev/null 2>&1; ok "spec not exist → non-0" '[ "$?" -ne 0 ]'
 bash "$G" bogus >/dev/null 2>&1; ok "unknown subcommand → non-0" '[ "$?" -ne 0 ]'
 
-echo "fanout-goal: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

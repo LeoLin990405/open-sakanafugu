@@ -14,13 +14,14 @@
 #
 # Exit codes: 0 ok / 1 no active run(for status/next) / 2 usage error
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CACHE_ROOT="${FANOUT_CACHE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.fanout-cache}"
+CACHE_ROOT="$(fx_cache_root)"
 RUN="$CACHE_ROOT/run.meta"
 CACHE_SH="$HERE/fanout-cache.sh"
 LOOP_SH="$HERE/fanout-loop.sh"
 LOOP_DIR="$CACHE_ROOT/loop"
-die(){ echo "fanout-run: $*" >&2; exit 2; }
 esc(){ printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 rget(){ sed -n "s/^$1=//p" "$RUN" 2>/dev/null | head -1; }
 

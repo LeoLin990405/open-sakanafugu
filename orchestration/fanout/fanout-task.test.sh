@@ -6,8 +6,8 @@ T="$HERE/fanout-task.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 export TASKS="$TMP/tasks"
 
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 echo "fanout-task tests"
 
@@ -36,5 +36,4 @@ ok "done no longer IN_PROGRESS" '! grep -q "^Status: IN_PROGRESS" "$F"'
 bash "$T" new >/dev/null 2>&1; ok "new without title → non-0 exit" '[ "$?" -ne 0 ]'
 bash "$T" log /no/such/file x >/dev/null 2>&1; ok "log nonexistent file → non-0" '[ "$?" -ne 0 ]'
 
-echo "fanout-task: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

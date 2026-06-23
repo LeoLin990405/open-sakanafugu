@@ -6,13 +6,14 @@
 #   default out    = <cache_root>/plans
 #   env: FANOUT_CCB(stub for tests) / FANOUT_CACHE
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-die(){ echo "fanout-plan: $*" >&2; exit 2; }
 
 goal="${1:-}"; shift || true
 [ -n "$goal" ] || die "usage: \"<goal>\" [--models m1,m2,..] [--out <dir>]"
 models="cc-deepseek,cc-kimi,coder"
-CACHE_ROOT="${FANOUT_CACHE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.fanout-cache}"
+CACHE_ROOT="$(fx_cache_root)"
 out="$CACHE_ROOT/plans"
 while [ "$#" -gt 0 ]; do
   case "$1" in

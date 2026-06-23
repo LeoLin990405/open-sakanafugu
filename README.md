@@ -3,7 +3,7 @@
 [![CI](https://github.com/BicaMindLabs/fugue/actions/workflows/ci.yml/badge.svg)](https://github.com/BicaMindLabs/fugue/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518.18-339933.svg)](package.json)
-[![Tests](https://img.shields.io/badge/tests-312%20passing-success.svg)](orchestration/fanout)
+[![Tests](https://img.shields.io/badge/tests-313%20passing-success.svg)](orchestration/fanout)
 
 **English | [简体中文](README_ZH.md)**
 
@@ -113,7 +113,7 @@ fugue is an **independent, training-free, self-hostable analogue** of that *idea
 |---|---|
 | `backends/bin/` | The Chinese-model backends: `cc_model_launch` shared core + 9 thin `*-code` launchers + `cc-model-registry.tsv` + `cc-models` dispatcher + **`cc-sync`** (auto-follow Claude Code + model updates) |
 | `backends/{install,verify}.sh`, `backends/prompts/` | Install / self-check / per-provider prompt add-ons |
-| `orchestration/fanout/` | The `fanout` CLI (18 subcommands) + `SKILL.md` (5-phase workflow + Phase 5 loop) + `workspaces/` + `templates/` + 18 test suites |
+| `orchestration/fanout/` | The `fanout` CLI (18 subcommands) + **`fanout-lib.sh`/`fanout-testlib.sh`** (shared helpers + TTL cache, sourced by every tool/suite) + `SKILL.md` (5-phase workflow + Phase 5 loop) + `workspaces/` + `templates/` + 18 test suites |
 | `orchestration/ccb/ccb.config.example` | Sanitized ccb multi-window topology template (placeholder keys) |
 | `orchestration/cn-plugin/cn/` | Claude Code plugin: `/cn:*` commands + `cn-dispatch` agent (derived from `openai/codex-plugin-cc`) |
 | `orchestration/agent-team/` | Workflow-tool orchestration example (multi-model planning → implement → review) |
@@ -215,7 +215,7 @@ The installer copies the skill plus all `fanout` tools, workspaces and templates
 |---|---|
 | `fanout experience add\|list\|recall\|show <ws>` | **Experience memory** — completed work → reusable method → sanitized → recalled into context |
 | `fanout ccb-sync check\|adapt [--apply]` | Adapt after a ccb update (version drift · grafting check · ccbd restart) |
-| `fanout selftest` | Run all 18 test suites (312 assertions) |
+| `fanout selftest` | Run all 18 test suites (313 assertions; 3 fleet pty-checks auto-skip when the host is out of pty devices) |
 
 ---
 
@@ -252,6 +252,7 @@ See [`docs/AGENT_TEAM.md`](docs/AGENT_TEAM.md) for multi-model planning and hier
 - **Progressive disclosure + skill precipitation** — agents see only the skills they need (a mother-catalog over all 3 sources), and methods learned on a task close the loop back into that catalog — authored by the official `skill-creator`, gated by a `validate` check.
 - **Keys stay out of the repo** — only `~/.config/cc-model-secrets.env`; the repo ships only `.example`. Pre-commit + CI scan blocks leaks.
 - **Docs match code** — a `check-docs` gate fails CI if the README's subcommands/counts drift from the actual `fanout` CLI.
+- **One shared lib, no boilerplate** — messaging, portable `mtime`, a TTL probe cache and the cache root live in `fanout-lib.sh` (suites share `fanout-testlib.sh`); every tool sources them instead of copy-pasting. Only idempotent probes (endpoint liveness) are cached — diagnostics (`doctor`/`fleet`) deliberately stay fresh. The pty fallback launcher degrades cleanly (caller-visible exit, no traceback) so `selftest` is deterministically green.
 - **No Gemini** — review / second opinions go to Codex or a Chinese backend.
 
 ---
@@ -265,7 +266,7 @@ make ci          # = scan + lint + check-docs + test (CI-equivalent)
 make scan        # secret-leak gate (fingerprints + ccb.config placeholder check)
 make lint        # bash -n + shellcheck (.shellcheckrc)
 make check-docs  # docs-match-code gate: README subcommands/counts == the fanout CLI
-make test        # cn-plugin + fanout selftest (312 assertions)
+make test        # cn-plugin + fanout selftest (313 assertions)
 make doctor      # environment recon
 make help        # all targets
 

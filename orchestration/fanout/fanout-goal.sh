@@ -12,8 +12,9 @@
 #   show  <spec>      parse and display spec fields
 #   check <spec>      run gate command: met = exit 0, else 1 (Phase 5 loop objective acceptance gate)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-die(){ echo "fanout-goal: $*" >&2; exit 2; }
 field(){ sed -n "s/^$1:[[:space:]]*//p" "$2" | head -1; }
 
 cmd_template(){

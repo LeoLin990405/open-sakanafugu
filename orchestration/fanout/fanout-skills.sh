@@ -23,12 +23,13 @@
 #   env: FANOUT_SKILLS_ROOT(default ~/.claude/skills) FANOUT_PLUGINS_ROOT(default ~/.claude/plugins/marketplaces)
 #        FANOUT_SKILLS_CATALOG(catalog path) FANOUT_SKILLS_NOTE_RE(note prefix regex) FANOUT_SKILLS_NO_PLUGINS=1(skip plugin)
 set -uo pipefail
+# shellcheck source=/dev/null
+. "$(dirname "${BASH_SOURCE[0]}")/fanout-lib.sh"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="${FANOUT_SKILLS_ROOT:-$HOME/.claude/skills}"
 PLUGINS="${FANOUT_PLUGINS_ROOT:-$HOME/.claude/plugins/marketplaces}"
 CATALOG="${FANOUT_SKILLS_CATALOG:-${FANOUT_STATE:-$HOME/.config/fanout}/skills-catalog.tsv}"
 NOTE_RE="${FANOUT_SKILLS_NOTE_RE:-^(wdkns|book|csdiy|dlai|mit|mooc|child|tu-online)}"
-die(){ echo "fanout-skills: $*" >&2; exit 2; }
 
 # shared awk: read SKILL.md, parse frontmatter, output "id<TAB>source<TAB>type<TAB>path<TAB>desc"
 # -v src=source  -v idmode=dirname|plugin (plugin: .../plugins/<P>/skills/<S>/ → P:S)

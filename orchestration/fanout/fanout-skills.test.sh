@@ -4,8 +4,8 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 S="$HERE/fanout-skills.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 has(){ case "$2" in *"$1"*) return 0;; *) return 1;; esac; }   # substring (avoid grep -P cross-platform)
 
 # user source: functional(inline) + note(wdkns prefix) + functional(folded >-); system source; fake plugin marketplace
@@ -146,5 +146,4 @@ bash "$S" validate --dir "$SK/Bad-Forge" >/dev/null 2>&1; ok "negative closed lo
 
 bash "$S" bogus >/dev/null 2>&1; ok "unknown subcommand → nonzero" '[ "$?" -ne 0 ]'
 
-echo "fanout-skills: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

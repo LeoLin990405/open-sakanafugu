@@ -9,8 +9,8 @@ trap 'rm -rf "$TMP"' EXIT
 export FANOUT_CACHE="$TMP/cache"
 cd "$TMP" || exit 1
 
-pass=0; fail=0
-ok()  { if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 echo "fanout-cache tests"
 
@@ -53,5 +53,4 @@ bash "$CACHE" init 2 x:cc-mimo >/dev/null
 bash "$CACHE" put 2 x a.md >/dev/null
 bash "$CACHE" barrier 2 --require-success >/dev/null 2>&1; ok "all-done round --require-success → 0" '[ "$?" -eq 0 ]'
 
-echo "fanout-cache: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone

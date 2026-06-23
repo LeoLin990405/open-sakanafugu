@@ -4,8 +4,8 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 S="$HERE/fanout-ccb-sync.sh"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
-pass=0; fail=0
-ok(){ if eval "$2"; then echo "  ✓ $1"; pass=$((pass+1)); else echo "  ✗ $1"; fail=$((fail+1)); fi; }
+# shellcheck source=/dev/null
+. "$HERE/fanout-testlib.sh"
 
 # stub ccb: version → fake version + Install path; others(kill) → no-op
 cat > "$TMP/ccb" <<EOF
@@ -51,5 +51,4 @@ ok "adapt with CCB_WORK still records stamp" 'grep -q "v9.9.9" "$FANOUT_STATE/cc
 
 bash "$S" nope >/dev/null 2>&1; ok "unknown subcommand → nonzero" '[ "$?" -ne 0 ]'
 
-echo "fanout-ccb-sync: $pass passed, $fail failed"
-[ "$fail" -eq 0 ]
+tdone
