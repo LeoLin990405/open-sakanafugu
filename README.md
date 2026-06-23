@@ -5,6 +5,8 @@
 [![Node](https://img.shields.io/badge/node-%E2%89%A518.18-339933.svg)](package.json)
 [![Tests](https://img.shields.io/badge/tests-312%20passing-success.svg)](orchestration/fanout)
 
+**English | [简体中文](README_ZH.md)**
+
 > **open-sakanafugu** is an open, harness-engineered take on [Sakana AI's Fugu](https://sakana.ai/fugu/): **many agents behind one interface**, coordinated into a single trustworthy answer by *orchestration* rather than a bigger model. A fleet of cheap models implements, an independent-family reviewer judges, and a **bounded review-fix loop** converges to acceptance — never looping forever, never hard-marking done.
 
 Fugu's bet is that **coordination, not raw model size, is the lever** — a learned conductor routes work across specialized agents and verifies the result. open-sakanafugu reproduces that *shape* with **engineering instead of training**: one [`fanout`](#the-fanout-cli) CLI is the single interface; **9 Chinese LLMs** (each an isolated Claude Code instance) are the workers; a different-family reviewer (Codex) is the verifier; and the router is a **Bayesian bandit that learns which model wins which task type** from every review verdict — a training-free analogue of Fugu's evolved coordinator. A fan-out/fan-in cache guarantees completeness, and per-task **workspace isolation** keeps weak models from drowning in context.
