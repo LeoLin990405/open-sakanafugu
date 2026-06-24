@@ -93,6 +93,11 @@ export { parseGoalSpec, renderGoalTemplate } from './domain/goal-parse.js';
 export { renderSummary } from './domain/summary.js';
 export type { TaskPriority, TaskRef } from './domain/task-file.js';
 export { renderTaskFile } from './domain/task-file.js';
+export { renderPlanPrompt, DEFAULT_PLAN_AGENTS } from './domain/plan.js';
+export type { VersionDrift } from './domain/ccb-sync.js';
+export { detectDrift } from './domain/ccb-sync.js';
+export type { RoleStatus, BackendStatus, DoctorReport } from './domain/doctor.js';
+export { readyBackends, recommend } from './domain/doctor.js';
 export {
   rankAgents,
   applyOutcome,
@@ -147,6 +152,9 @@ export { DefaultIntegrator } from './adapters/integrate/default-integrator.js';
 export { FsSkillCatalog } from './adapters/skills/fs-skill-catalog.js';
 export { FsTaskStore } from './adapters/task/fs-task-store.js';
 export { runGoalGate, type GoalCheckOptions } from './adapters/goal/goal-gate.js';
+export { CcbSync, type CcbSyncOptions } from './adapters/ccb/ccb-sync.js';
+export { runRecon, type BackendSpec, type ReconOptions } from './adapters/doctor/recon.js';
 
 // App helpers
 export { waitForRound } from './app/wait-for-round.js';
+export { planPanel, type PlanEntry } from './app/plan-panel.js';

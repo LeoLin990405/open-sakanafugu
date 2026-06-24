@@ -17,13 +17,13 @@ Legend: `bash ✓` shipped in shell · `ts …` engine status (`◐ core` = port
 | 9 | `skills` (index/match/inject) | `SkillCatalog` | ✓ | ◐ core (iter9) | ☐ |
 | 10 | `dispatch` (--harness ...) | `Harness` + `Phase` | ✓ | ◐ core (iter5) | ☐ |
 | 11 | `fleet` (status/up/down) | `Harness.health` + launcher | ✓ | ◐ health (iter5) | ☐ |
-| 12 | `doctor` | recon (composition of `Harness.health`/gates) | ✓ | ☐ | ☐ |
-| 13 | `plan` (multi-model panel) | `Phase` (planning) | ✓ | ☐ | ☐ |
+| 12 | `doctor` | recon + recommend | ✓ | ◐ core (iter11) | ☐ |
+| 13 | `plan` (multi-model panel) | planPanel (Harness fan-out) | ✓ | ◐ core (iter11) | ☐ |
 | 14 | `run` (set/round/status/next) | `RunState` facade (`RunStore`) | ✓ | ◐ core (iter1) | ☐ |
 | 15 | `summary` | observability over `RunState`/`ResultCache` | ✓ | ◐ core (iter10) | ☐ |
 | 16 | `task` (new/log/done) | `TaskStore` audit trail | ✓ | ◐ core (iter10) | ☐ |
 | 17 | `template` (render) | `ContextAssembler` (template part) | ✓ | ◐ core (iter6) | ☐ |
-| 18 | `ccb-sync` (check/adapt) | `Harness` (ccb) maintenance | ✓ | ☐ | ☐ |
+| 18 | `ccb-sync` (check/adapt) | CcbSync (drift detect) | ✓ | ◐ core (iter11) | ☐ |
 | — | `(coordinator)` — wires the 5-phase pipeline | `Coordinator` | n/a (driver) | ☐ last | ☐ |
 
 Migration order (riskiest-last): pure strategies/state first (`allocate`, `loop`, `cache`, gates), then stores (`workspace`/`experience`/`skills`), then IO-heavy adapters (`harness`/`fleet`/`dispatch`), then the `Coordinator`.
