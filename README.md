@@ -164,6 +164,7 @@ The engine CLI currently exposes:
 ```bash
 fugue version
 fugue doctor
+fugue fleet status|up|down
 fugue allocate <task-type>|list|record|feed|stats|reset|decay
 fugue dispatch <target> --harness fugue-cc|codex|opencode --template <name>|--prompt-file <file>
 fugue integrate --work <repo> --agents "a b" [--ownership file] [--dry]

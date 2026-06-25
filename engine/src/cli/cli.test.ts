@@ -433,6 +433,68 @@ describe('fugue CLI', () => {
     });
   });
 
+  describe('fleet command', () => {
+    let dir: string;
+    let work: string;
+    let claude: string;
+    let bin: string;
+
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), 'fugue-fleet-'));
+      work = join(dir, 'work');
+      claude = join(dir, 'claude');
+      bin = join(dir, 'fugue-cc');
+      await mkdir(join(work, '.fugue-cc'), { recursive: true });
+      await mkdir(join(claude, '.fugue-cc'), { recursive: true });
+      process.env.FUGUE_CC_WORK = work;
+      process.env.FUGUE_CC_CLAUDE = claude;
+      process.env.FUGUE_CC_BIN = bin;
+      process.env.CLAUDE_CODE_TEST_X = '1';
+    });
+
+    afterEach(async () => {
+      delete process.env.FUGUE_CC_WORK;
+      delete process.env.FUGUE_CC_CLAUDE;
+      delete process.env.FUGUE_CC_BIN;
+      delete process.env.CLAUDE_CODE_TEST_X;
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    const stub = async (body: string): Promise<void> => {
+      await writeFile(bin, ['#!/usr/bin/env bash', body, ''].join('\n'), 'utf8');
+      await chmod(bin, 0o755);
+    };
+
+    it('prints dry-run launch commands with stripped Claude Code env and claude prefix', async () => {
+      await stub('exit 0');
+      const dry = await run(['fleet', 'up', '--dry']);
+      const ptyDry = await run(['fleet', 'up', '--pty', '--dry']);
+
+      expect(dry.code).toBe(0);
+      expect(dry.out).toContain('-u CLAUDE_CODE_TEST_X');
+      expect(dry.out).toContain('fugue-cc -s');
+      expect(dry.out).toContain('CLAUDE_START_CMD=claude');
+      expect(ptyDry.out).toContain('fleet-launch.py');
+      expect(ptyDry.out).toContain('fugue-cc -s');
+    });
+
+    it('treats only mount_state: mounted as ready', async () => {
+      await stub('printf "mount_state: mounted\\nhealth: alive\\n"');
+      const ready = await run(['fleet', 'status']);
+      await stub('printf "mount_state: unmounted\\nhealth: unmounted\\n"');
+      const unmounted = await run(['fleet', 'status']);
+      await stub('printf "desired_state: running\\n"');
+      const desiredOnly = await run(['fleet', 'status']);
+
+      expect(ready.code).toBe(0);
+      expect(ready.out).toContain('ready');
+      expect(unmounted.code).toBe(1);
+      expect(unmounted.out).toContain('down');
+      expect(desiredOnly.code).toBe(1);
+      expect(desiredOnly.out).toContain('down');
+    });
+  });
+
   describe('experience commands', () => {
     let dir: string;
     let store: string;

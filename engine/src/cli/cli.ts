@@ -17,6 +17,7 @@ import {
   ExperienceRecallCommand,
   ExperienceShowCommand,
 } from './commands/experience.js';
+import { FleetCommand } from './commands/fleet.js';
 import { GoalCheckCommand, GoalShowCommand, GoalTemplateCommand } from './commands/goal.js';
 import { IntegrateCommand } from './commands/integrate.js';
 import { LoopCommand } from './commands/loop.js';
@@ -52,6 +53,7 @@ export const buildCli = (): Cli => {
   cli.register(DoctorCommand);
   cli.register(AllocateCommand);
   cli.register(DispatchCommand);
+  cli.register(FleetCommand);
   cli.register(ExperienceAddCommand);
   cli.register(ExperienceListCommand);
   cli.register(ExperienceRecallCommand);
