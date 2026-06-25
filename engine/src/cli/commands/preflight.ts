@@ -224,9 +224,9 @@ export class PreflightCommand extends Command {
     else warn(lines, status, 'no tmux (fugue-cc panes need it)');
 
     if (await executable(this.cacheScript)) {
-      ok(lines, 'fuguectl-cache.sh');
+      ok(lines, 'fuguectl-cache');
     } else {
-      fail(lines, status, 'missing fuguectl-cache.sh (join barrier depends on it)');
+      fail(lines, status, 'missing fuguectl-cache (join barrier depends on it)');
     }
 
     if (work !== undefined) {

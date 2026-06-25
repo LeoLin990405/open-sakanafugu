@@ -1533,7 +1533,7 @@ describe('fugue CLI', () => {
       const result = await run(['preflight']);
 
       expect(result.code).toBe(0);
-      expect(result.out).toContain('fuguectl-cache.sh');
+      expect(result.out).toContain('fuguectl-cache');
       expect(result.out).toContain(`provider mounted (${work})`);
       expect(result.out).toContain('no-Gemini guard passed');
       expect(result.out).toContain('gitignored');
@@ -1555,7 +1555,7 @@ describe('fugue CLI', () => {
       install = join(dir, 'install');
       state = join(dir, 'state');
       work = join(dir, 'work');
-      preflight = join(dir, 'preflight.sh');
+      preflight = join(dir, 'preflight');
       calls = join(dir, 'calls.txt');
       await mkdir(join(install, 'lib/provider_profiles'), { recursive: true });
       await mkdir(join(work, '.fugue-cc'), { recursive: true });
@@ -1580,6 +1580,7 @@ describe('fugue CLI', () => {
       );
       await chmod(bin, 0o755);
       await writeFile(preflight, '#!/usr/bin/env bash\necho "config OK: $3"\n', 'utf8');
+      await chmod(preflight, 0o755);
     });
 
     afterEach(async () => {

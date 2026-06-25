@@ -4,7 +4,7 @@ import { containsSecret, slugify } from './experience-redact.js';
 
 describe('containsSecret', () => {
   it('flags plaintext key fingerprints', () => {
-    // Built by concatenation so this source file itself doesn't trip scan-secrets.sh.
+    // Built by concatenation so this source file itself doesn't trip scan-secrets.ts.
     expect(containsSecret(`here is sk-${'abcdefghijklmnopqrstuvwxyz'} key`)).toBe(true);
     expect(containsSecret(`tp-${'abcdefghij0123456789abcdefghij01'}`)).toBe(true);
     expect(containsSecret(`${'0123456789abcdef0123456789abcdef'}.${'ABCDEFGHIJ012345'}`)).toBe(

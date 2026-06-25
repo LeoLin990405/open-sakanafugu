@@ -39,7 +39,7 @@ export const fuguectlDir = (metaUrl: string): string =>
   joinPath(repoRoot(metaUrl), 'orchestration', 'fuguectl');
 
 export const fuguectlScript = (metaUrl: string, name: string): string =>
-  joinPath(fuguectlDir(metaUrl), `fuguectl-${name}.sh`);
+  joinPath(fuguectlDir(metaUrl), `fuguectl-${name}`);
 
 export const fuguectlFile = (metaUrl: string, name: string): string =>
   joinPath(fuguectlDir(metaUrl), name);

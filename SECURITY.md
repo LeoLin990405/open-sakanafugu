@@ -8,7 +8,7 @@ This workflow orchestrates several Chinese-model providers and **will touch API 
 - The repo only tracks `orchestration/fugue-cc/provider.config.example`, whose `key=` values are always `<...>` placeholders.
 - `.gitignore` ignores `**/.fugue-cc/provider.config`, `*secrets*.env`, `.env*`.
 - Every commit/push passes three gates:
-  1. `scripts/scan-secrets.sh` — plaintext key fingerprints (`sk-`/`tp-`/zhipu format) + `provider.config*`'s `key=` must be a placeholder.
+  1. `npm run scan` / `scripts/scan-secrets.ts` — plaintext key fingerprints (`sk-`/`tp-`/zhipu format) + `provider.config*`'s `key=` must be a placeholder.
   2. `gitleaks` (`.gitleaks.toml`) — scans the full git history.
   3. CI's `secret-scan` job runs both; red blocks the merge.
 - Enable locally: `pipx install pre-commit && pre-commit install`, and it scans automatically on commit.

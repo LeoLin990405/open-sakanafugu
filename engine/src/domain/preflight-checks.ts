@@ -1,6 +1,6 @@
 import type { GateCheck, GateResult } from './gate.js';
 
-// Parity with bash fuguectl-preflight.sh (deterministic provider config checks):
+// Parity with fuguectl preflight (deterministic provider config checks):
 //   no-Gemini:   ^[^#]*(model|url)[[:space:]]*=.*(gemini|antigravity)   (case-insensitive)
 //                ^[^#]* means the model/url token is not preceded by '#', so comment lines are ignored.
 //   model line:  ^[[:space:]]*model[[:space:]]*=

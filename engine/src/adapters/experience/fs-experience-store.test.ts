@@ -38,7 +38,7 @@ describe('FsExperienceStore', () => {
     const result = await make(fakeClock(0)).add({
       workspace: 'code',
       title: 'leak',
-      body: `token sk-${'abcdefghijklmnopqrstuvwxyz'} here`, // split so scan-secrets.sh ignores the source
+      body: `token sk-${'abcdefghijklmnopqrstuvwxyz'} here`, // split so scan-secrets.ts ignores the source
     });
     expect(isErr(result) && result.error.kind).toBe('contains-secret');
   });

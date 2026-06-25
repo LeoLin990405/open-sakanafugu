@@ -192,7 +192,7 @@ export class RuntimeAdaptCommand extends RuntimeCommand {
     if (!(await existingFile(fileSystem, config))) return [];
     const lines = ['  config validation (no-Gemini + sound):'];
     try {
-      const result = await runner.run('bash', [this.preflightScript, '--config-only', config]);
+      const result = await runner.run(this.preflightScript, ['--config-only', config]);
       const output = indent(`${result.stdout}${result.stderr}`);
       if (output.length > 0) lines.push(output);
     } catch (error) {
