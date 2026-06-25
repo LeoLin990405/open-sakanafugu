@@ -168,6 +168,214 @@ describe('fugue CLI', () => {
     });
   });
 
+  describe('dispatch command', () => {
+    let dir: string;
+    let templates: string;
+    let workspaces: string;
+    let allocation: string;
+    let stats: string;
+    let experience: string;
+    let ledger: string;
+    let promptFile: string;
+    let fugueCcCalled: string;
+    let codexCalled: string;
+    let opencodeCalled: string;
+
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), 'fugue-dispatch-'));
+      templates = join(dir, 'templates');
+      workspaces = join(dir, 'workspaces');
+      allocation = join(dir, 'allocation.tsv');
+      stats = join(dir, 'allocation-stats.tsv');
+      experience = join(dir, 'experience');
+      ledger = join(dir, 'alloc-ledger.tsv');
+      promptFile = join(dir, 'prompt.md');
+      fugueCcCalled = join(dir, 'fugue-cc.called');
+      codexCalled = join(dir, 'codex.called');
+      opencodeCalled = join(dir, 'opencode.called');
+      await mkdir(templates, { recursive: true });
+      await mkdir(workspaces, { recursive: true });
+      await writeFile(join(templates, 'impl.md'), 'Role={{ROLE}}\nScope={{SCOPE}}\n', 'utf8');
+      await writeFile(join(workspaces, '_system.md'), 'global no-Gemini rule\n', 'utf8');
+      await writeFile(
+        join(workspaces, 'code.workspace'),
+        [
+          'prompt: Code station prompt',
+          'tools: read,edit',
+          'skills: existing',
+          'memory: experience',
+          'models: @bench:code',
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+      await writeFile(allocation, 'code\tminimax,doubao,glm\nfallback\tmimo\n', 'utf8');
+      await writeFile(promptFile, 'custom prompt content', 'utf8');
+
+      const fugueCc = join(dir, 'fugue-cc');
+      const codex = join(dir, 'codex');
+      const opencode = join(dir, 'opencode');
+      await writeFile(
+        fugueCc,
+        [
+          '#!/usr/bin/env bash',
+          `echo "ARGV: $*" > "${fugueCcCalled}"`,
+          `cat >> "${fugueCcCalled}"`,
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+      await writeFile(
+        codex,
+        ['#!/usr/bin/env bash', `echo "ARGV: $*" > "${codexCalled}"`, ''].join('\n'),
+        'utf8',
+      );
+      await writeFile(
+        opencode,
+        ['#!/usr/bin/env bash', `echo "ARGV: $*" > "${opencodeCalled}"`, ''].join('\n'),
+        'utf8',
+      );
+      await chmod(fugueCc, 0o755);
+      await chmod(codex, 0o755);
+      await chmod(opencode, 0o755);
+      process.env.FUGUE_CC_BIN = fugueCc;
+      process.env.FUGUE_CODEX = codex;
+      process.env.FUGUE_OPENCODE = opencode;
+    });
+
+    afterEach(async () => {
+      delete process.env.FUGUE_CC_BIN;
+      delete process.env.FUGUE_CODEX;
+      delete process.env.FUGUE_OPENCODE;
+      delete process.env.FUGUE_SKILLS_ROOT;
+      delete process.env.FUGUE_PLUGINS_ROOT;
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    const args = (...rest: readonly string[]): readonly string[] => [
+      'dispatch',
+      '--templates',
+      templates,
+      '--workspaces',
+      workspaces,
+      '--allocation',
+      allocation,
+      '--stats',
+      stats,
+      '--experience',
+      experience,
+      '--ledger',
+      ledger,
+      ...rest,
+    ];
+
+    it('renders templates, dispatches through fugue-cc, and records task/ledger side effects', async () => {
+      const task = join(dir, 'TASK.md');
+      await writeFile(task, '## Execution log\n', 'utf8');
+
+      const dispatched = await run(
+        args(
+          'cc-deepseek',
+          '--template',
+          'impl',
+          '--set',
+          'ROLE=BACKEND-ROLE',
+          '--set',
+          'SCOPE=SCOPE-MARK',
+          '--task',
+          task,
+          '--task-type',
+          'code',
+        ),
+      );
+      const called = await readFile(fugueCcCalled, 'utf8');
+      const taskLog = await readFile(task, 'utf8');
+      const ledgerLog = await readFile(ledger, 'utf8');
+
+      expect(dispatched.code).toBe(0);
+      expect(called).toContain('ARGV: ask cc-deepseek --compact');
+      expect(called).toContain('BACKEND-ROLE');
+      expect(called).toContain('SCOPE-MARK');
+      expect(taskLog).toContain('dispatch → cc-deepseek');
+      expect(ledgerLog).toContain('code\tcc-deepseek');
+    });
+
+    it('dispatches prompt files through codex and opencode harnesses', async () => {
+      const codexDispatch = await run(
+        args('gpt-5.5', '--harness', 'codex', '--prompt-file', promptFile),
+      );
+      const opencodeDispatch = await run(
+        args('doubao/doubao-code', '--harness', 'opencode', '--prompt-file', promptFile),
+      );
+      const codexCall = await readFile(codexCalled, 'utf8');
+      const opencodeCall = await readFile(opencodeCalled, 'utf8');
+
+      expect(codexDispatch.code).toBe(0);
+      expect(opencodeDispatch.code).toBe(0);
+      expect(codexCall).toContain('ARGV: exec --model gpt-5.5');
+      expect(codexCall).toContain('custom prompt content');
+      expect(opencodeCall).toContain('ARGV: run -m doubao/doubao-code');
+      expect(opencodeCall).toContain('custom prompt content');
+    });
+
+    it('prefixes selected skills and workspace context before the prompt body', async () => {
+      const skillsRoot = join(dir, 'skills');
+      const pluginsRoot = join(dir, 'plugins');
+      await mkdir(join(skillsRoot, 'inj-tool'), { recursive: true });
+      await mkdir(join(pluginsRoot, 'market', 'plugins', 'myplug', 'skills', 'plug-tool'), {
+        recursive: true,
+      });
+      await writeFile(
+        join(skillsRoot, 'inj-tool', 'SKILL.md'),
+        '---\nname: inj-tool\ndescription: INJECTED-SKILL-DESC for testing\n---\nbody\n',
+        'utf8',
+      );
+      await writeFile(
+        join(pluginsRoot, 'market', 'plugins', 'myplug', 'skills', 'plug-tool', 'SKILL.md'),
+        '---\nname: plug-tool\ndescription: PLUGIN-SKILL-DESC for testing\n---\nbody\n',
+        'utf8',
+      );
+      process.env.FUGUE_SKILLS_ROOT = skillsRoot;
+      process.env.FUGUE_PLUGINS_ROOT = pluginsRoot;
+
+      await run(
+        args(
+          'cc-x',
+          '--workspace',
+          'code',
+          '--prompt-file',
+          promptFile,
+          '--skills',
+          'inj-tool,myplug:plug-tool',
+        ),
+      );
+      const called = await readFile(fugueCcCalled, 'utf8');
+
+      expect(called).toContain('INJECTED-SKILL-DESC');
+      expect(called).toContain('PLUGIN-SKILL-DESC');
+      expect(called).toContain('## Context — workspace: code');
+      expect(called).toContain('global no-Gemini rule');
+      expect(called).toContain('Code station prompt');
+      expect(called).toContain('minimax,doubao,glm');
+      expect(called).toContain('custom prompt content');
+    });
+
+    it('rejects invalid harnesses and missing prompt sources', async () => {
+      const unknownHarness = await run(
+        args('cc-x', '--harness', 'bogus', '--prompt-file', promptFile),
+      );
+      const missingPrompt = await run(args('cc-x'));
+      const missingPromptFile = await run(args('cc-x', '--prompt-file', join(dir, 'missing.md')));
+
+      expect(unknownHarness.code).toBe(2);
+      expect(unknownHarness.err).toContain('unknown harness');
+      expect(missingPrompt.code).toBe(2);
+      expect(missingPrompt.err).toContain('need --template');
+      expect(missingPromptFile.code).toBe(2);
+      expect(missingPromptFile.err).toContain('no prompt file');
+    });
+  });
+
   describe('experience commands', () => {
     let dir: string;
     let store: string;

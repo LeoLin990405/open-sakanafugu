@@ -165,6 +165,7 @@ The engine CLI currently exposes:
 fugue version
 fugue doctor
 fugue allocate <task-type>|list|record|feed|stats|reset|decay
+fugue dispatch <target> --harness fugue-cc|codex|opencode --template <name>|--prompt-file <file>
 fugue preflight [--config-only] [provider.config]
 fugue cache init|put|fail|status|barrier|collect|list|resume --cache <dir>
 fugue plan "<goal>" --out <dir> [--models m1,m2]
