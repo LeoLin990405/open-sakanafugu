@@ -1,142 +1,117 @@
 # fugue
 
-[![CI](https://github.com/BicaMindLabs/fugue/actions/workflows/ci.yml/badge.svg)](https://github.com/BicaMindLabs/fugue/actions/workflows/ci.yml)
+[![CI](https://github.com/BicaMindLabs/open-sakanafugu/actions/workflows/ci.yml/badge.svg)](https://github.com/BicaMindLabs/open-sakanafugu/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A518.18-339933.svg)](package.json)
 [![Tests](https://img.shields.io/badge/tests-322%20passing-success.svg)](orchestration/fuguectl)
 
 **English | [简体中文](README_ZH.md)**
 
-**fugue** is a training-free, self-hostable multi-agent coding harness. It puts
-many models behind one operator surface, lets cheaper specialized workers
-implement in isolated contexts, and asks an independent reviewer to judge before
-anything is trusted.
+**fugue** is a training-free, self-hostable coding harness for running a fleet of
+AI workers as one governed loop. It keeps implementation, review, integration,
+and harness improvement separate enough that the system can be inspected, tested,
+and stopped when it is wrong.
 
-The public control plane is [`fuguectl`](#fuguectl-cli), and the Claude Code
-skill is installed as `/fugue`.
+The daily operator surface is `fuguectl`. The Claude Code skill is `/fugue`.
 
-## What It Is
+<p align="center">
+  <img src="docs/readme-overview.svg" alt="fugue overview" width="900">
+</p>
 
-fugue takes inspiration from [Sakana AI's Fugu](https://sakana.ai/fugu/): the
-useful trick is not one larger model, but orchestration over a diverse model
-pool. Fugu trains a coordinator; fugue builds the same shape with ordinary
-engineering:
+## Why Fugue Exists
 
-- **One interface** - `fuguectl` drives dispatch, cache, integration, review,
-  loop state, routing, skills, and fleet maintenance.
-- **Separated roles** - Chinese-model Claude Code workers implement; Codex
-  reviews; the operator remains the final authority.
-- **Bounded correction** - review-fix is an explicit state machine with
-  keep-best, confirmation, and escalation instead of an infinite loop.
-- **Context isolation** - each workspace exposes only the prompt, tools, memory,
-  history, and skills needed for that task.
-- **Learning without training** - allocation is a transparent
-  Beta-Bernoulli/Thompson-Sampling router updated from review outcomes.
-- **Harness evolution** - the TypeScript engine includes a Self-Harness loop
-  that mines failed runs, proposes bounded harness edits, and promotes only
-  non-regressing changes.
+Single-agent coding works until the task needs breadth, adversarial review, or a
+repeatable recovery path. fugue treats those as engineering problems:
 
-## Current Shape
+- **Many workers, one control plane** - route work to specialized Claude Code
+  clones and keep every output behind `fuguectl`.
+- **Generation is not review** - implementers write; Codex or another configured
+  independent reviewer gives the verdict.
+- **Cache before trust** - a round that dispatches N tasks must collect N
+  terminal results before integration.
+- **Bounded repair** - the review-fix loop has keep-best, confirmation, user
+  escalation, and non-convergence states.
+- **Small context on purpose** - workspace and skill injection show each worker
+  only the context it needs.
+- **Learning without training** - allocation uses a benchmark prior plus live
+  review outcomes to improve routing.
+- **Harness self-improvement** - the typed engine can mine failed runs and test
+  bounded changes to the harness itself.
 
-There are two layers in this repository:
+## What You Get
 
-| Layer                   | Status                                                                                                 | What to use it for                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `orchestration/fuguectl/` | Production operator layer: `fuguectl`, 18 subcommands, 18 test suites, 322 assertions | Day-to-day multi-agent coding workflow                                     |
-| `engine/`               | Strict TypeScript ports-and-adapters engine, opt-in while parity grows                                 | Typed integrations, the `fugue` CLI, and net-new Self-Harness capabilities |
+| Layer | Status | Use it for |
+| --- | --- | --- |
+| `orchestration/fuguectl/` | Production shell operator: `fuguectl`, 18 subcommands, 18 test suites, 322 assertions | Day-to-day multi-agent coding |
+| `engine/` | Strict TypeScript ports-and-adapters engine | Typed integrations, `fugue` CLI, Self-Harness |
+| `orchestration/fugue-cc/` | Sanitized provider runtime template | Running Claude Code clones through model providers |
+| `orchestration/cn-plugin/` | Claude Code `/cn:*` plugin | Lightweight single-machine model dispatch |
 
-The bash operator remains green while capabilities migrate into the typed engine.
-Parity is tracked in [`docs/PARITY.md`](docs/PARITY.md).
-
-## Architecture
-
-<img src="docs/architecture.svg" alt="fugue architecture" width="760">
-
-```
-Planner / operator
-      |
-      v
-fuguectl control plane
-      |
-      +--> dispatch workers in isolated worktrees
-      +--> cache every result and wait at a join barrier
-      +--> integrate only reviewed work onto main
-      +--> ask an independent reviewer for a VERDICT
-      +--> drive a bounded review-fix loop
-      +--> feed outcomes back into allocation and skills
-```
-
-| Role                         | Concrete implementation                                                                                                                                                                                   | Responsibility                                              |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Planner / integrator / fixer | Claude Desktop, Claude Code, or a human operator                                                                                                                                                          | Split work, choose when to accept risk, integrate and patch |
-| Implementers                 | `cc-deepseek`, `cc-glm`, `cc-kimi`, `cc-qwen`, `cc-doubao`, `cc-minimax`, `cc-mimo`, `cc-stepfun`, `cc-longcat`, plus optional `cc-claude` through the `fugue-cc` runtime | Write code in isolated worktrees                            |
-| Reviewer                     | Codex (`coder` / `codex`)                                                                                                                                                                                 | Independent ACCEPTED / NEEDS FIX verdict                    |
-| Optional frontend worker     | Antigravity (`agy`)                                                                                                                                                                                       | UI/frontend work only; not used as reviewer                 |
+The shell operator stays green while capabilities graduate into the typed engine.
+See [docs/PARITY.md](docs/PARITY.md) for migration status.
 
 ## Quick Start
 
-Requirements: macOS or Linux, Node >= 18.18, `git`, `tmux`, a configured
-`fugue-cc` provider runtime for the full fleet, Codex for review, and optional
-`agy` for frontend work.
+Requirements: macOS or Linux, Node.js >= 18.18, `git`, `tmux`, and whichever
+model/API credentials you choose to configure. Codex is recommended for review.
 
 ```bash
-git clone https://github.com/BicaMindLabs/fugue
+git clone https://github.com/BicaMindLabs/open-sakanafugu fugue
 cd fugue
 
-# Inspect this machine and get a recommended workflow.
-make doctor
-
-# Install model launchers. Put real keys in ~/.config/cc-model-secrets.env.
-make install
-make verify
-
-# Run the local gates once on a fresh clone.
-make ci-clean
+make doctor       # inspect local CLIs and provider readiness
+make install      # install model launchers
+make verify       # verify launcher wiring
+make ci-clean     # run the full local gate from a clean engine install
 ```
 
-For a full `fugue-cc` fleet:
+Real keys stay outside the repository:
+
+```bash
+mkdir -p ~/.config
+$EDITOR ~/.config/cc-model-secrets.env
+```
+
+For a full `fugue-cc` fleet, put a sanitized provider config in the project you
+want the fleet to edit:
 
 ```bash
 cp orchestration/fugue-cc/provider.config.example /path/to/project/.fugue-cc/provider.config
 cd /path/to/project
 fugue-cc
+```
 
-# In another shell or agent session:
+Then run the operator from another shell:
+
+```bash
 /path/to/fugue/orchestration/fuguectl/fuguectl preflight
 /path/to/fugue/orchestration/fuguectl/fuguectl fleet status
 ```
 
-API keys stay outside the repo. The launchers read
-`~/.config/cc-model-secrets.env`; project-local provider config lives under a
-git-ignored `.fugue-cc/`.
-
-## Install As A Claude Code Skill
+## Install The Claude Code Skill
 
 ```bash
 make install-skill
 ```
 
-This installs to `~/.claude/skills/fugue` and backs up any previous copy. After
-restarting Claude Code, invoke it with `/fugue` or by describing a multi-agent
-task. The installed skill exposes `fuguectl`:
+This installs the skill to `~/.claude/skills/fugue`. Restart Claude Code, then
+invoke `/fugue` or ask for a multi-agent coding workflow. Smoke-test the
+installed bundle with:
 
 ```bash
 ~/.claude/skills/fugue/fuguectl selftest
 ```
 
-## Daily Workflow
+## The Operator Loop
 
-The operator loop is five phases:
-
-1. **Plan** - run preflight, create a TASK file, split work by ownership.
-2. **Dispatch** - send scoped prompts to workers; cache every terminal result.
-3. **Integrate** - cherry-pick worktrees onto `main`; isolate conflicts and
-   ownership violations.
-4. **Review** - ask an independent reviewer for a verdict.
-5. **Fix or finish** - use the loop state machine to continue, confirm, ask the
-   user, or escalate.
-
-The core commands are:
+1. **Plan** - preflight, open a TASK file, assign ownership, and pick workers.
+2. **Dispatch** - send scoped prompts through `fuguectl dispatch`.
+3. **Gather** - cache every result and wait at the join barrier.
+4. **Integrate** - cherry-pick reviewed worktrees onto `main`; isolate conflicts
+   and ownership violations.
+5. **Review** - get an independent ACCEPTED / NEEDS FIX verdict.
+6. **Fix or finish** - run the bounded loop state machine until accepted or
+   escalated.
 
 ```bash
 fuguectl preflight
@@ -148,63 +123,29 @@ fuguectl loop record --verdict NEEDS_FIX --round 1
 fuguectl loop decide
 ```
 
-For the full process, see [`docs/WORKFLOW.md`](docs/WORKFLOW.md).
+The full walkthrough is in [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
-## fuguectl CLI
+## Command Map
 
-`orchestration/fuguectl/fuguectl` is the primary operator entry point. Run
-`fuguectl help` for exact syntax. The 18 subcommands are grouped below by where
-they sit in the workflow.
+`orchestration/fuguectl/fuguectl` is the main operator entry point. Run
+`fuguectl help` for exact syntax.
 
-### Setup And Recon
+| Area | Commands |
+| --- | --- |
+| Setup and recon | `fuguectl doctor`, `fuguectl preflight`, `fuguectl fleet status\|up\|down` |
+| Planning | `fuguectl task new\|log\|done`, `fuguectl template <name>`, `fuguectl plan "<goal>"`, `fuguectl goal template\|show\|check` |
+| Routing and context | `fuguectl allocate <type>`, `fuguectl workspace list\|show\|model\|context`, `fuguectl skills index\|list\|match\|show\|inject\|validate\|forge` |
+| Dispatch and gather | `fuguectl dispatch <target>`, `fuguectl cache init\|put\|fail\|barrier\|collect\|resume` |
+| Integration and loop | `fuguectl integrate --work <repo>`, `fuguectl loop init\|record\|decide\|status`, `fuguectl run set\|round\|status\|next\|clear`, `fuguectl summary <round>` |
+| Memory and maintenance | `fuguectl experience add\|list\|recall\|show`, `fuguectl runtime check\|adapt`, `fuguectl selftest` |
 
-| Command                           | Use                                                                                                                        |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `fuguectl doctor`                 | Probe installed CLIs, configured APIs, and recommend an operating mode.                                                    |
-| `fuguectl fleet status\|up\|down` | Check, start, or stop the `fugue-cc` worker fleet; strips `CLAUDE_CODE_*` before launch to avoid OAuth false-401s.         |
-| `fuguectl preflight [cfg]`        | Go/no-go gate for dependencies, provider mount, provider config, no-Gemini policy, `.fugue-cc/` gitignore, and optional probes. |
-
-### Plan And Route
-
-| Command                                                             | Use                                                                                                                                     |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `fuguectl task new\|log\|done`                                      | Create, update, and close the TASK audit trail.                                                                                         |
-| `fuguectl plan "<goal>" [--models a,b,c]`                           | Ask several models for decomposition plans before choosing the work split.                                                              |
-| `fuguectl allocate <type> [--top] [--sample]`                       | Rank workers from the benchmark prior plus live review posterior; `record`, `feed`, `stats`, `reset`, and `decay` maintain the router.  |
-| `fuguectl workspace list\|show\|model\|context <ws>`                | Assemble the scoped context for a workspace.                                                                                            |
-| `fuguectl skills index\|list\|match\|show\|inject\|validate\|forge` | Build the local skill catalog, inject only selected skills, validate authored skills, and settle learned methods back into the catalog. |
-| `fuguectl template <name> [--set K=V]`                              | Render an implementation, analysis, or review prompt template.                                                                          |
-| `fuguectl goal template\|show\|check <spec>`                        | Run declarative acceptance gates.                                                                                                       |
-
-### Dispatch And Gather
-
-| Command                                                                                                                 | Use                                                                                                                                      |
-| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `fuguectl dispatch <target> [--harness fugue-cc\|codex\|opencode] [--workspace ws] [--task-type T] [--skills a,b]` | Render or load a prompt, optionally prepend workspace and skill context, dispatch through fugue-cc/Codex/OpenCode, and log routing data. |
-| `fuguectl cache init\|put\|fail\|barrier\|collect\|resume`                                                              | Durable result cache, join barrier, timing, and resume support.                                                                        |
-
-### Integrate, Review, Loop
-
-| Command                                                                | Use                                                                                                     |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `fuguectl integrate --work <repo> --agents "a b" [--ownership <file>]` | Cherry-pick worker worktrees onto `main`; conflicts and ownership violations are isolated per agent.    |
-| `fuguectl loop init\|record\|decide\|status`                           | Phase 5 review-fix state machine: DONE, CONFIRM, CONTINUE, ASK_USER, ESCALATE_MAX, or ESCALATE_NONCONV. |
-| `fuguectl run set\|round\|status\|next\|clear`                         | Machine-readable run facade over task, cache, loop, best result, and next action.                       |
-| `fuguectl summary <round> [--task f]`                                  | Human-readable round status and elapsed-time summary.                                                   |
-
-### Observe And Maintain
-
-| Command                                            | Use                                                                                               |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `fuguectl experience add\|list\|recall\|show <ws>` | Store sanitized reusable methods and recall them into future workspace context.                   |
-| `fuguectl runtime check\|adapt [--apply]`          | Detect and adapt to provider/Claude Code version drift. |
-| `fuguectl selftest`                                | Run the full operator suite: 18 test suites, 322 assertions.                                      |
+The current operator has 18 subcommands and 18 test suites.
 
 ## TypeScript Engine
 
-The `engine/` package is the typed version of fugue's orchestration model:
-strict TypeScript, ports-and-adapters layering, pure domain policies, and
-injected adapters for real harnesses and storage.
+The `engine/` package is the typed implementation of fugue's orchestration
+model: strict TypeScript, ports-and-adapters layering, pure domain policy, and
+adapters for real harnesses and stores.
 
 ```bash
 cd engine
@@ -223,21 +164,16 @@ fugue goal check <spec>
 fugue self-harness template|run
 ```
 
-The bash `fuguectl` layer remains the daily operator surface until each command
-has a typed equivalent with equal or better coverage.
-
 ## Self-Harness
 
-Self-Harness improves the harness configuration itself, not the model. fugue's
-loop is an engine-native abstraction of Shanghai Artificial Intelligence
-Laboratory's Self-Harness paper (arXiv 2606.09498). A run does four things:
+Self-Harness improves the harness configuration, not the base model. fugue's
+implementation is an engine-native abstraction inspired by Shanghai Artificial
+Intelligence Laboratory's paper
+[Self-Harness: Harnesses That Improve Themselves](https://arxiv.org/abs/2606.09498).
 
-1. Mine verifier-grounded weaknesses from failed run events.
-2. Ask a configured harness agent to propose bounded full-surface replacement
-   edits.
-3. Validate each candidate against fixed held-in and held-out task lists.
-4. Promote only if the edit does not regress either split and improves at least
-   one.
+<p align="center">
+  <img src="docs/readme-self-harness.svg" alt="Self-Harness loop" width="900">
+</p>
 
 ```bash
 cd engine
@@ -249,47 +185,34 @@ node dist/cli/main.js self-harness run \
   --cwd /path/to/workspace
 ```
 
-See [`docs/SELF_HARNESS.md`](docs/SELF_HARNESS.md) for the strict JSON spec,
-editable surfaces, validation rules, and smoke tests.
+The strict JSON spec, editable surfaces, validation rules, and smoke tests are in
+[docs/SELF_HARNESS.md](docs/SELF_HARNESS.md).
 
-## Repository Layout
+## Repository Guide
 
-| Path                           | Contents                                                                                             |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `backends/bin/`                | Model launchers, registry, `cc-models`, and `cc-sync`.                                               |
-| `backends/{install,verify}.sh` | Local install and launcher verification.                                                             |
-| `orchestration/fuguectl/`        | `fuguectl`, shared shell libraries, templates, workspaces, skill bundle, and tests. |
-| `orchestration/fugue-cc/`      | Sanitized provider configuration template for the `fugue-cc` runtime.                         |
-| `orchestration/cn-plugin/`     | Claude Code `/cn:*` plugin and dispatch agent derived from `openai/codex-plugin-cc`.                 |
-| `orchestration/agent-team/`    | Higher-level multi-model planning example.                                                           |
-| `engine/`                      | TypeScript package, domain ports, adapters, CLI, and Self-Harness loop.                              |
-| `scripts/`                     | Secret scan, shell lint, docs drift check, and skill installer.                                      |
-| `docs/`                        | Workflow, architecture, parity, integrations, and Self-Harness operator guide.                       |
-| `AGENTS.md`                    | Cross-harness operator entry read by Claude Code, Codex, and OpenCode.                               |
+| Path | Contents |
+| --- | --- |
+| `backends/bin/` | Model launchers, registry, `cc-models`, and `cc-sync`. |
+| `backends/{install,verify}.sh` | Local install and launcher verification. |
+| `orchestration/fuguectl/` | `fuguectl`, shared shell libraries, templates, workspaces, skill bundle, and tests. |
+| `orchestration/fugue-cc/` | Sanitized provider configuration template for the runtime bridge. |
+| `orchestration/cn-plugin/` | Claude Code `/cn:*` plugin and dispatch agent. |
+| `orchestration/agent-team/` | Higher-level multi-model planning example. |
+| `engine/` | TypeScript package, domain ports, adapters, CLI, and Self-Harness loop. |
+| `scripts/` | Secret scan, shell lint, docs drift check, and skill installer. |
+| `docs/` | Workflow, architecture, parity, integrations, and Self-Harness guide. |
+| `AGENTS.md` | Cross-harness operator entry read by Claude Code, Codex, and OpenCode. |
 
-## Design Rules
+## Safety Model
 
-- **Generation is not review** - workers and reviewers are different model
-  families.
-- **`main` is the truth source** - workers edit isolated worktrees; integration
-  is explicit.
-- **Never trust self-reporting** - deterministic gates and reviewer verdicts
-  drive the loop.
-- **Bound every loop** - continue, confirm, ask the user, or escalate; never spin
-  forever.
-- **Cache before advancing** - N dispatched tasks must produce N terminal
-  results before the round moves on.
-- **Show weak models less** - workspaces and skill injection keep context small.
-- **Learn from outcomes** - allocation and skill precipitation feed future
-  rounds.
-- **Keep secrets out of git** - keys live in local config, and CI scans for
-  leaks.
-- **Make docs executable enough to fail** - `check-docs` verifies README command
-  coverage, counts, and the Self-Harness operator guide.
+- Keep real keys in `~/.config/cc-model-secrets.env` or ignored local config.
+- Keep `.fugue-cc/` out of git.
+- Route review to Codex or another independent non-Gemini reviewer.
+- Never advance a round until the join barrier has all terminal results.
+- Let deterministic gates fail before spending reviewer tokens.
+- Run `npm run ci` before pushing.
 
 ## Development
-
-Local gates reuse the same scripts as CI:
 
 ```bash
 make ci          # scan + shell lint + docs + plugin/fuguectl + engine checks
@@ -303,7 +226,7 @@ make doctor      # local environment recon
 make help        # list all make targets
 ```
 
-The root npm scripts mirror these gates:
+The root npm scripts mirror the same gates:
 
 ```bash
 npm run ci
@@ -312,26 +235,16 @@ npm run test:fuguectl
 npm run test:engine
 ```
 
-CI runs secret scanning, shell checks, docs drift checks, the Node/plugin tests,
-and the engine typecheck/lint/vitest suite. See
-[`CONTRIBUTING.md`](CONTRIBUTING.md).
-
 ## Security
 
-This workflow handles API keys. Hard rules:
-
-- Store real keys only in `~/.config/cc-model-secrets.env` or a project-local,
-  git-ignored `.fugue-cc/`.
-- Keep only sanitized examples in the repository.
-- Let `.gitignore`, the custom scanner, and gitleaks block accidental leaks.
-- Report vulnerabilities privately through GitHub Security Advisory.
-
-See [`SECURITY.md`](SECURITY.md) for the full policy.
+See [SECURITY.md](SECURITY.md). In short: the repository contains only sanitized
+examples, CI scans for leaks, and vulnerabilities should be reported privately
+through GitHub Security Advisory.
 
 ## Acknowledgements
 
-- [Sakana AI Fugu](https://sakana.ai/fugu/) for the many-models-behind-one-interface framing.
-- [trotsky1997/OpenFugu](https://github.com/trotsky1997/OpenFugu) for the complementary faithful training-based reconstruction.
+- [Sakana AI Fugu](https://sakana.ai/fugu/) for the diverse-model orchestration framing.
+- [trotsky1997/OpenFugu](https://github.com/trotsky1997/OpenFugu) for the complementary training-based reconstruction.
 - [openai/codex-plugin-cc](https://github.com/openai/codex-plugin-cc) for the plugin architecture that the `/cn:*` layer derives from.
 - [Zleap-AI/Zleap-Agent](https://github.com/Zleap-AI/Zleap-Agent) for workspace isolation and experience-memory inspiration.
 - [SeemSeam/claude_codex_bridge](https://github.com/SeemSeam/claude_codex_bridge) as a reference for the provider-runtime bridge.
@@ -340,7 +253,7 @@ See [`SECURITY.md`](SECURITY.md) for the full policy.
 - [merkyor/Lynn](https://gitee.com/merkyor/Lynn) for orchestrator-side ownership enforcement inspiration.
 - Anthropic's official `skill-creator` meta-skill for the skill authoring and validation flow.
 
-See [`NOTICE`](NOTICE) for attribution detail.
+See [NOTICE](NOTICE) for attribution detail.
 
 ## License
 

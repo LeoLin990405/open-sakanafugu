@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 560" role="img" aria-labelledby="title desc">
+  <title id="title">fugue overview</title>
+  <desc id="desc">A multi-agent coding loop with fuguectl, isolated implementers, a join barrier, an independent reviewer, and a typed engine.</desc>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#16a34a"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#ea580c"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#dc2626"/>
+    </marker>
+    <style>
+      .label { font: 600 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #172033; }
+      .sub { font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #526070; }
+      .small { font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #65758b; }
+      .mono { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #334155; }
+    </style>
+  </defs>
+  <rect x="1" y="1" width="978" height="558" rx="18" fill="#ffffff" stroke="#d0d7de"/>
+  <rect x="28" y="28" width="924" height="504" rx="16" fill="#f8fafc" stroke="#e2e8f0"/>
+
+  <text x="64" y="76" class="label">fugue turns a model fleet into a governed coding loop</text>
+  <text x="64" y="102" class="sub">parallel workers write in isolation, every result is cached, and an independent reviewer decides what can land</text>
+
+  <rect x="64" y="146" width="188" height="88" rx="10" fill="#dbeafe" stroke="#2563eb"/>
+  <text x="158" y="178" text-anchor="middle" class="label" font-size="17">Planner</text>
+  <text x="158" y="201" text-anchor="middle" class="sub">Claude Code, Desktop,</text>
+  <text x="158" y="221" text-anchor="middle" class="sub">or human operator</text>
+
+  <rect x="320" y="126" width="268" height="128" rx="12" fill="#eef2ff" stroke="#4f46e5"/>
+  <text x="454" y="160" text-anchor="middle" class="label">fuguectl</text>
+  <text x="454" y="186" text-anchor="middle" class="sub">preflight · dispatch · cache</text>
+  <text x="454" y="208" text-anchor="middle" class="sub">integrate · review · loop</text>
+  <text x="454" y="233" text-anchor="middle" class="mono">18 subcommands · 18 test suites</text>
+
+  <rect x="674" y="146" width="230" height="88" rx="10" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="789" y="178" text-anchor="middle" class="label" font-size="17">Reviewer</text>
+  <text x="789" y="201" text-anchor="middle" class="sub">Codex / configured judge</text>
+  <text x="789" y="221" text-anchor="middle" class="sub">ACCEPTED or NEEDS FIX</text>
+
+  <line x1="252" y1="190" x2="318" y2="190" stroke="#2563eb" stroke-width="2.3" marker-end="url(#arrow-blue)"/>
+  <line x1="588" y1="190" x2="672" y2="190" stroke="#ea580c" stroke-width="2.3" marker-end="url(#arrow-orange)"/>
+
+  <rect x="76" y="318" width="200" height="118" rx="10" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="176" y="349" text-anchor="middle" class="label" font-size="17">Implementers</text>
+  <text x="176" y="373" text-anchor="middle" class="sub">cc-deepseek · glm · kimi</text>
+  <text x="176" y="394" text-anchor="middle" class="sub">qwen · doubao · minimax</text>
+  <text x="176" y="415" text-anchor="middle" class="sub">mimo · stepfun · longcat</text>
+
+  <rect x="320" y="318" width="268" height="118" rx="10" fill="#f3e8ff" stroke="#9333ea"/>
+  <text x="454" y="349" text-anchor="middle" class="label" font-size="17">Join barrier</text>
+  <text x="454" y="373" text-anchor="middle" class="sub">dispatch N, collect N terminal results</text>
+  <text x="454" y="394" text-anchor="middle" class="sub">cache first, then integrate</text>
+  <text x="454" y="418" text-anchor="middle" class="mono">round state is durable</text>
+
+  <rect x="632" y="318" width="272" height="118" rx="10" fill="#ecfeff" stroke="#0891b2"/>
+  <text x="768" y="349" text-anchor="middle" class="label" font-size="17">Typed engine</text>
+  <text x="768" y="373" text-anchor="middle" class="sub">ports and adapters</text>
+  <text x="768" y="394" text-anchor="middle" class="sub">real harness adapters</text>
+  <text x="768" y="418" text-anchor="middle" class="sub">Self-Harness evolution loop</text>
+
+  <path d="M410 254 C350 282, 264 288, 196 316" fill="none" stroke="#16a34a" stroke-width="2.3" marker-end="url(#arrow-green)"/>
+  <path d="M454 254 L454 316" fill="none" stroke="#9333ea" stroke-width="2.3" marker-end="url(#arrow-blue)"/>
+  <path d="M672 234 C612 274, 574 294, 538 318" fill="none" stroke="#dc2626" stroke-width="2.3" stroke-dasharray="7 5" marker-end="url(#arrow-red)"/>
+  <path d="M588 230 C650 262, 704 288, 742 316" fill="none" stroke="#0891b2" stroke-width="2.3" marker-end="url(#arrow-blue)"/>
+
+  <text x="92" y="484" class="small">Core rule: generation is not review. Workers propose; deterministic gates and an independent judge decide.</text>
+  <text x="92" y="506" class="small">Security boundary: real API keys stay outside git, provider config is ignored, and CI scans tracked plus untracked files.</text>
+</svg>

@@ -6,10 +6,10 @@
   "description": "Chinese-model multi-agent coding workflow: backends + fuguectl + fugue-cc runtime + bounded review-fix loop",
   "license": "Apache-2.0",
   "author": "BicaMind Labs",
-  "homepage": "https://github.com/BicaMindLabs/fugue",
+  "homepage": "https://github.com/BicaMindLabs/open-sakanafugu",
   "repository": {
     "type": "git",
-    "url": "https://github.com/BicaMindLabs/fugue.git"
+    "url": "https://github.com/BicaMindLabs/open-sakanafugu.git"
   },
   "engines": {
     "node": ">=18.18.0"
