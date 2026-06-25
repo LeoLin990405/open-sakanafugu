@@ -4,7 +4,7 @@ Tracks the incremental migration (see [ARCHITECTURE.md](ARCHITECTURE.md) §5). T
 
 Legend: `bash ✓` shipped in shell · `ts …` engine status (`◐ core` = ports+adapters landed & tested · `+ cli` = a `fugue` CLI command now drives that core) · **cutover** = bash retired/shimmed.
 
-The TS CLI (`fugue`, clipanion) landed in iter13 as a thin shell over the tested engine — `fugue version`, `fugue doctor`, `fugue task new|log|done`, `fugue goal template|show|check`, and the net-new `fugue self-harness template|run` surface. Build emits `dist/cli/main.js` (shebang preserved → `npx fugue`). Remaining subcommands stay engine-only until wired.
+The TS CLI (`fugue`, clipanion) landed in iter13 as a thin shell over the tested engine — `fugue version`, `fugue doctor`, `fugue task new|log|done`, `fugue template`, `fugue goal template|show|check`, and the net-new `fugue self-harness template|run` surface. Build emits `dist/cli/main.js` (shebang preserved → `npx fugue`). Remaining subcommands stay engine-only until wired.
 
 | #   | Capability (bash subcommand)                                 | Primary port                                                             | bash          | ts                                    | cutover |
 | --- | ------------------------------------------------------------ | ------------------------------------------------------------------------ | ------------- | ------------------------------------- | ------- |
@@ -19,12 +19,12 @@ The TS CLI (`fugue`, clipanion) landed in iter13 as a thin shell over the tested
 | 9   | `skills` (index/match/inject)                                | `SkillCatalog`                                                           | ✓             | ◐ core (iter9)                        | ☐       |
 | 10  | `dispatch` (--harness ...)                                   | `Harness` + `Phase`                                                      | ✓             | ◐ core (iter5)                        | ☐       |
 | 11  | `fleet` (status/up/down)                                     | `Harness.health` + launcher                                              | ✓             | ◐ health (iter5)                      | ☐       |
-| 12  | `doctor`                                                     | recon + recommend                                                        | ✓             | ◐ core + cli (iter13)                 | ☐       |
+| 12  | `doctor`                                                     | recon + recommend                                                        | ✓ shell shim  | ◐ core + cli (iter13)                 | ☑ shim  |
 | 13  | `plan` (multi-model panel)                                   | planPanel (Harness parallel dispatch)                                    | ✓             | ◐ core (iter11)                       | ☐       |
 | 14  | `run` (set/round/status/next)                                | `RunState` facade (`RunStore`)                                           | ✓             | ◐ core (iter1)                        | ☐       |
 | 15  | `summary`                                                    | observability over `RunState`/`ResultCache`                              | ✓             | ◐ core (iter10)                       | ☐       |
 | 16  | `task` (new/log/done)                                        | `TaskStore` audit trail                                                  | ✓ shell shim  | ◐ core + cli (iter13)                 | ☑ shim  |
-| 17  | `template` (render)                                          | `ContextAssembler` (template part)                                       | ✓             | ◐ core (iter6)                        | ☐       |
+| 17  | `template` (render)                                          | `ContextAssembler` (template part)                                       | ✓ shell shim  | ◐ core + cli (iter16)                 | ☑ shim  |
 | 18  | `runtime` (check/adapt)                                      | Runtime/provider sync (fugue-cc runtime)                                 | ✓             | ◐ core (iter11)                       | ☐       |
 | —   | `(coordinator)` — wires the ports into the pipeline          | `Coordinator` + `wire.ts`                                                | n/a (driver)  | ◐ core (iter12)                       | ☐       |
 | —   | `agents` / `(agent-registry)` — logical agents over runtimes | `AgentRegistry` + `Coordinator` harness map                              | ✓ shell shim  | ◐ core + cli `agent-registry`         | ☑ shim  |

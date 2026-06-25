@@ -64,7 +64,7 @@ fuguectl agents resolve agents.json coder
 
 The shell helper is intentionally small: it gives operators a durable `.sh`
 entry point for registry files, while the engine remains the canonical place for
-typed routing and coordinator behavior. The `agents`, `task`, and `goal`
+typed routing and coordinator behavior. The `agents`, `task`, `template`, `doctor`, and `goal`
 operator scripts now delegate to the built engine CLI at
 `engine/dist/cli/main.js`; set `FUGUE_ENGINE_CLI` to override that path.
 

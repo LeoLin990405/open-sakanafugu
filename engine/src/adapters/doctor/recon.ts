@@ -16,7 +16,16 @@ export interface ReconOptions {
   readonly env?: Readonly<Record<string, string | undefined>>;
 }
 
-const DEFAULT_ROLES = ['claude', 'codex', 'fugue-cc', 'agy', 'opencode', 'git', 'tmux'] as const;
+const DEFAULT_ROLES = [
+  'claude',
+  'codex',
+  'fugue-cc',
+  'agy',
+  'opencode',
+  'node',
+  'git',
+  'tmux',
+] as const;
 
 /** Probe the environment (via `command -v`) and assemble a DoctorReport. */
 export const runRecon = async (

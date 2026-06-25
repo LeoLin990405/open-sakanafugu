@@ -11,6 +11,7 @@ import { DoctorCommand } from './commands/doctor.js';
 import { GoalCheckCommand, GoalShowCommand, GoalTemplateCommand } from './commands/goal.js';
 import { SelfHarnessRunCommand, SelfHarnessTemplateCommand } from './commands/self-harness.js';
 import { TaskDoneCommand, TaskLogCommand, TaskNewCommand } from './commands/task.js';
+import { TemplateRenderCommand } from './commands/template.js';
 import { VersionCommand } from './commands/version.js';
 
 /**
@@ -33,6 +34,7 @@ export const buildCli = (): Cli => {
   cli.register(GoalTemplateCommand);
   cli.register(GoalShowCommand);
   cli.register(GoalCheckCommand);
+  cli.register(TemplateRenderCommand);
   cli.register(AgentRegistryTemplateCommand);
   cli.register(AgentRegistryValidateCommand);
   cli.register(AgentRegistryListCommand);

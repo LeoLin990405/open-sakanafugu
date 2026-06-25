@@ -45,6 +45,13 @@ describe('fugue CLI', () => {
     expect(out).toContain('0.0.0');
   });
 
+  it('prints the doctor quiet summary', async () => {
+    const { code, out } = await run(['doctor', '--quiet']);
+    expect(code).toBe(0);
+    expect(out).toContain('agents=');
+    expect(out).toContain('backends_ready=');
+  });
+
   it('errors with exit 1 on a missing goal spec', async () => {
     const { code, err } = await run(['goal', 'check', '/no/such/spec.txt']);
     expect(code).toBe(1);
@@ -128,6 +135,33 @@ describe('fugue CLI', () => {
       const { code, out } = await run(['task', 'new', 'a task', '--priority', 'P0']);
       expect(code).toBe(0);
       expect(out).toContain('TASK-');
+    });
+  });
+
+  describe('template rendering', () => {
+    let dir: string;
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), 'fugue-template-'));
+    });
+    afterEach(async () => {
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    it('renders a template with --set variables and leaves unknown placeholders intact', async () => {
+      await writeFile(join(dir, 'impl.md'), 'Role: {{ROLE}}\nScope: {{SCOPE}}\n', 'utf8');
+      const { code, out } = await run(['template', 'impl', '--dir', dir, '--set', 'ROLE=backend']);
+
+      expect(code).toBe(0);
+      expect(out).toContain('Role: backend');
+      expect(out).toContain('Scope: {{SCOPE}}');
+    });
+
+    it('rejects malformed --set values', async () => {
+      await writeFile(join(dir, 'impl.md'), 'Role: {{ROLE}}\n', 'utf8');
+      const { code, out } = await run(['template', 'impl', '--dir', dir, '--set', 'BAD']);
+
+      expect(code).not.toBe(0);
+      expect(out).toContain('--set format should be KEY=VALUE');
     });
   });
 
