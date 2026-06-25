@@ -181,6 +181,42 @@ describe('parseSelfHarnessSpec', () => {
     expect(result.value.harness).toBeUndefined();
   });
 
+  it('accepts harnessArgs as a string array and preserves order', () => {
+    const spec = validObject();
+    spec.harnessArgs = ['-c', 'mcp_servers={}', '--skip-git-repo-check'];
+
+    const result = parseObject(spec);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.harnessArgs).toEqual(['-c', 'mcp_servers={}', '--skip-git-repo-check']);
+  });
+
+  it('leaves harnessArgs undefined when omitted', () => {
+    const spec = validObject();
+    delete spec.harnessArgs;
+
+    const result = parseObject(spec);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.harnessArgs).toBeUndefined();
+  });
+
+  it('reports a non-array harnessArgs', () => {
+    const spec = validObject();
+    spec.harnessArgs = '-c mcp_servers={}';
+
+    expect(expectError(spec)).toBe('harnessArgs must be an array of strings');
+  });
+
+  it('reports a non-string harnessArgs element', () => {
+    const spec = validObject();
+    spec.harnessArgs = ['-c', 7];
+
+    expect(expectError(spec)).toBe('harnessArgs[1] must be a string');
+  });
+
   it('reports a non-object eval case', () => {
     const spec = validObject();
     spec.heldIn = [42];

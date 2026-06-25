@@ -14,6 +14,8 @@ export interface EvalCase {
 export interface SelfHarnessSpec {
   readonly agent: string;
   readonly harness?: HarnessName;
+  /** Extra flags spliced into every harness dispatch (e.g. codex `-c mcp_servers={}` on flaky-MCP hosts). */
+  readonly harnessArgs?: readonly string[];
   readonly k: number;
   readonly rounds: number;
   /** Source run mined on every round; callers that need fresh evidence should run the CLI per source run. */
@@ -29,6 +31,7 @@ const SURFACE_SET: ReadonlySet<string> = new Set(EDITABLE_SURFACES);
 const SPEC_KEY_SET: ReadonlySet<string> = new Set([
   'agent',
   'harness',
+  'harnessArgs',
   'k',
   'rounds',
   'runId',
@@ -59,6 +62,17 @@ const trimNonEmptyString = (value: unknown): string | undefined => {
 
 const isHarnessName = (value: unknown): value is HarnessName =>
   typeof value === 'string' && HARNESS_NAME_SET.has(value);
+
+const parseStringArray = (value: unknown, label: string): Result<readonly string[], string> => {
+  if (!isUnknownArray(value)) return err(`${label} must be an array of strings`);
+  const out: string[] = [];
+  for (let index = 0; index < value.length; index += 1) {
+    const item = value[index];
+    if (typeof item !== 'string') return err(`${label}[${String(index)}] must be a string`);
+    out.push(item);
+  }
+  return ok(out);
+};
 
 const emptyConfig = (): Record<EditableSurface, string> => ({
   'system-prompt': '',
@@ -153,6 +167,13 @@ export const parseSelfHarnessSpec = (text: string): Result<SelfHarnessSpec, stri
     return err(`harness must be one of ${HARNESS_NAMES_TEXT}`);
   }
 
+  let harnessArgs: readonly string[] | undefined;
+  if (parsed.harnessArgs !== undefined) {
+    const result = parseStringArray(parsed.harnessArgs, 'harnessArgs');
+    if (!result.ok) return result;
+    harnessArgs = result.value;
+  }
+
   const config = parseConfig(parsed.config);
   if (!config.ok) return config;
 
@@ -171,8 +192,8 @@ export const parseSelfHarnessSpec = (text: string): Result<SelfHarnessSpec, stri
     heldIn: heldIn.value,
     heldOut: heldOut.value,
   };
-
-  return ok(parsed.harness === undefined ? base : { ...base, harness: parsed.harness });
+  const withHarness = parsed.harness === undefined ? base : { ...base, harness: parsed.harness };
+  return ok(harnessArgs === undefined ? withHarness : { ...withHarness, harnessArgs });
 };
 
 export const renderSelfHarnessSpecTemplate = (): string => {

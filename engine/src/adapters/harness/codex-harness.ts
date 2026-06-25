@@ -14,12 +14,14 @@ export class CodexHarness implements Harness {
   readonly name = 'codex';
   private readonly bin: string;
   private readonly cwd?: string;
+  private readonly extraArgs: readonly string[];
 
   constructor(
     private readonly runner: CommandRunner,
     options: HarnessExecOptions = {},
   ) {
     this.bin = options.bin ?? 'codex';
+    this.extraArgs = options.args ?? [];
     if (options.cwd !== undefined) this.cwd = options.cwd;
   }
 
@@ -31,7 +33,7 @@ export class CodexHarness implements Harness {
     return runDispatch(
       this.runner,
       this.bin,
-      ['exec', '--model', request.agent, request.prompt],
+      ['exec', ...this.extraArgs, '--model', request.agent, request.prompt],
       request,
       this.options(),
     );

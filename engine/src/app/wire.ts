@@ -4,6 +4,7 @@ import { BetaBernoulliAllocator } from '../adapters/allocation/beta-bernoulli-al
 import { PersistentBarrier } from '../adapters/barrier/persistent-barrier.js';
 import { FugueCcHarness } from '../adapters/harness/fugue-cc-harness.js';
 import { CodexHarness } from '../adapters/harness/codex-harness.js';
+import type { HarnessExecOptions } from '../adapters/harness/exec-helpers.js';
 import { OpencodeHarness } from '../adapters/harness/opencode-harness.js';
 import { HarnessBackedProposer } from '../adapters/self-harness/harness-proposer.js';
 import { RunWeaknessMiner } from '../adapters/self-harness/run-weakness-miner.js';
@@ -34,6 +35,8 @@ export interface WireConfig {
   readonly bench?: BenchTable;
   /** Working directory for harness commands. */
   readonly cwd?: string;
+  /** Extra flags spliced into every harness dispatch (e.g. codex MCP-disable on flaky hosts). */
+  readonly harnessArgs?: readonly string[];
   /** Optional logical-agent registry; enables per-agent harness/runtime routing. */
   readonly agentRegistry?: AgentRegistry;
 }
@@ -44,8 +47,16 @@ export interface WireSelfHarnessConfig {
   readonly stateDir: string;
 }
 
-const buildHarness = (name: HarnessName, runner: CommandRunner, cwd?: string): Harness => {
-  const options = cwd !== undefined ? { cwd } : {};
+const buildHarness = (
+  name: HarnessName,
+  runner: CommandRunner,
+  cwd?: string,
+  args?: readonly string[],
+): Harness => {
+  const options: HarnessExecOptions = {
+    ...(cwd !== undefined ? { cwd } : {}),
+    ...(args !== undefined ? { args } : {}),
+  };
   switch (name) {
     case 'fugue-cc':
       return new FugueCcHarness(runner, options);
@@ -56,11 +67,15 @@ const buildHarness = (name: HarnessName, runner: CommandRunner, cwd?: string): H
   }
 };
 
-const buildHarnessMap = (runner: CommandRunner, cwd?: string): ReadonlyMap<HarnessName, Harness> =>
+const buildHarnessMap = (
+  runner: CommandRunner,
+  cwd?: string,
+  args?: readonly string[],
+): ReadonlyMap<HarnessName, Harness> =>
   new Map(
     HARNESS_NAMES.map((name): readonly [HarnessName, Harness] => [
       name,
-      buildHarness(name, runner, cwd),
+      buildHarness(name, runner, cwd, args),
     ]),
   );
 
@@ -71,7 +86,7 @@ const buildHarnessMap = (runner: CommandRunner, cwd?: string): ReadonlyMap<Harne
 export const wireCoordinator = (config: WireConfig): Coordinator => {
   const fs = new NodeFileSystem();
   const runner = new NodeCommandRunner();
-  const harnesses = buildHarnessMap(runner, config.cwd);
+  const harnesses = buildHarnessMap(runner, config.cwd, config.harnessArgs);
   const defaultHarness = harnesses.get(config.harness ?? 'fugue-cc');
   if (defaultHarness === undefined) throw new Error('default harness was not constructed');
 
@@ -104,7 +119,12 @@ export const wireCoordinator = (config: WireConfig): Coordinator => {
 export const wireSelfHarness = (cfg: WireSelfHarnessConfig): SelfHarnessLoop => {
   const fs = new NodeFileSystem();
   const runner = new NodeCommandRunner();
-  const harness = buildHarness(cfg.spec.harness ?? 'fugue-cc', runner, cfg.cwd);
+  const harness = buildHarness(
+    cfg.spec.harness ?? 'fugue-cc',
+    runner,
+    cfg.cwd,
+    cfg.spec.harnessArgs,
+  );
   const runStore = new FsRunStore(fs, joinPath(cfg.stateDir, 'runs'));
 
   return new SelfHarnessLoop({

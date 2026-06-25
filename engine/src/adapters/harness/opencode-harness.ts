@@ -14,12 +14,14 @@ export class OpencodeHarness implements Harness {
   readonly name = 'opencode';
   private readonly bin: string;
   private readonly cwd?: string;
+  private readonly extraArgs: readonly string[];
 
   constructor(
     private readonly runner: CommandRunner,
     options: HarnessExecOptions = {},
   ) {
     this.bin = options.bin ?? 'opencode';
+    this.extraArgs = options.args ?? [];
     if (options.cwd !== undefined) this.cwd = options.cwd;
   }
 
@@ -31,7 +33,7 @@ export class OpencodeHarness implements Harness {
     return runDispatch(
       this.runner,
       this.bin,
-      ['run', '-m', request.agent, request.prompt],
+      ['run', ...this.extraArgs, '-m', request.agent, request.prompt],
       request,
       this.options(),
     );

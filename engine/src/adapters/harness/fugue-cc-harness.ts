@@ -20,12 +20,14 @@ export class FugueCcHarness implements Harness {
   readonly name = 'fugue-cc';
   private readonly bin: string;
   private readonly cwd?: string;
+  private readonly extraArgs: readonly string[];
 
   constructor(
     private readonly runner: CommandRunner,
     options: HarnessExecOptions = {},
   ) {
     this.bin = options.bin ?? 'fugue-cc';
+    this.extraArgs = options.args ?? [];
     if (options.cwd !== undefined) this.cwd = options.cwd;
   }
 
@@ -34,10 +36,16 @@ export class FugueCcHarness implements Harness {
   }
 
   dispatch(request: DispatchRequest): Promise<Result<DispatchResult, DispatchError>> {
-    return runDispatch(this.runner, this.bin, ['ask', request.agent, '--compact'], request, {
-      stdin: `${request.prompt}\n`,
-      ...this.options(),
-    });
+    return runDispatch(
+      this.runner,
+      this.bin,
+      ['ask', request.agent, '--compact', ...this.extraArgs],
+      request,
+      {
+        stdin: `${request.prompt}\n`,
+        ...this.options(),
+      },
+    );
   }
 
   async health(): Promise<HealthStatus> {

@@ -12,6 +12,12 @@ import type { CommandOptions, CommandRunner } from '../../infra/command-runner.j
 export interface HarnessExecOptions {
   readonly bin?: string;
   readonly cwd?: string;
+  /**
+   * Extra CLI flags spliced into every dispatch. Lets a caller harden the
+   * underlying tool per host — e.g. codex `-c mcp_servers={}` to skip a flaky
+   * remote-MCP config that would otherwise hang `codex exec`.
+   */
+  readonly args?: readonly string[];
 }
 
 const message = (error: unknown): string =>

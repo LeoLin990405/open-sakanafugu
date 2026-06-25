@@ -82,6 +82,15 @@ describe('FugueCcHarness', () => {
     const harness = new FugueCcHarness(new FakeRunner(res()));
     expect(harness.name).toBe('fugue-cc');
   });
+
+  it('splices extra args after the --compact flag', async () => {
+    const runner = new FakeRunner(res());
+    await new FugueCcHarness(runner, { args: ['--profile', 'fast'] }).dispatch({
+      agent: 'cc-deepseek',
+      prompt: 'hi',
+    });
+    expect(runner.calls[0]?.args).toEqual(['ask', 'cc-deepseek', '--compact', '--profile', 'fast']);
+  });
 });
 
 describe('CodexHarness', () => {
@@ -95,6 +104,22 @@ describe('CodexHarness', () => {
     expect((await new CodexHarness(new FakeRunner(res({ code: 0 }))).health()).healthy).toBe(true);
     expect((await new CodexHarness(new FakeRunner(res({ code: 1 }))).health()).healthy).toBe(false);
   });
+
+  it('splices extra args after exec (e.g. MCP-disable for flaky hosts)', async () => {
+    const runner = new FakeRunner(res({ stdout: 'ok' }));
+    await new CodexHarness(runner, { args: ['-c', 'mcp_servers={}'] }).dispatch({
+      agent: 'gpt-5.5',
+      prompt: 'review this',
+    });
+    expect(runner.calls[0]?.args).toEqual([
+      'exec',
+      '-c',
+      'mcp_servers={}',
+      '--model',
+      'gpt-5.5',
+      'review this',
+    ]);
+  });
 });
 
 describe('OpencodeHarness', () => {
@@ -102,5 +127,21 @@ describe('OpencodeHarness', () => {
     const runner = new FakeRunner(res());
     await new OpencodeHarness(runner).dispatch({ agent: 'volcengine/doubao', prompt: 'go' });
     expect(runner.calls[0]?.args).toEqual(['run', '-m', 'volcengine/doubao', 'go']);
+  });
+
+  it('splices extra args after run', async () => {
+    const runner = new FakeRunner(res());
+    await new OpencodeHarness(runner, { args: ['--agent', 'build'] }).dispatch({
+      agent: 'volcengine/doubao',
+      prompt: 'go',
+    });
+    expect(runner.calls[0]?.args).toEqual([
+      'run',
+      '--agent',
+      'build',
+      '-m',
+      'volcengine/doubao',
+      'go',
+    ]);
   });
 });
