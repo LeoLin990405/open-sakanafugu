@@ -495,6 +495,65 @@ describe('fugue CLI', () => {
     });
   });
 
+  describe('skills command', () => {
+    let dir: string;
+    let skillsRoot: string;
+    let pluginsRoot: string;
+    let catalog: string;
+
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), 'fugue-skills-'));
+      skillsRoot = join(dir, 'skills');
+      pluginsRoot = join(dir, 'plugins');
+      catalog = join(dir, 'catalog.tsv');
+      await mkdir(join(skillsRoot, 'my-tool'), { recursive: true });
+      await mkdir(join(skillsRoot, '.system', 'sys-tool'), { recursive: true });
+      await mkdir(join(pluginsRoot, 'mp', 'plugins', 'plug', 'skills', 'plug-tool'), {
+        recursive: true,
+      });
+      await writeFile(
+        join(skillsRoot, 'my-tool', 'SKILL.md'),
+        '---\nname: my-tool\ndescription: functional desc\n---\nbody\n',
+        'utf8',
+      );
+      await writeFile(
+        join(skillsRoot, '.system', 'sys-tool', 'SKILL.md'),
+        '---\nname: sys-tool\ndescription: system creator desc\n---\nsys body\n',
+        'utf8',
+      );
+      await writeFile(
+        join(pluginsRoot, 'mp', 'plugins', 'plug', 'skills', 'plug-tool', 'SKILL.md'),
+        '---\nname: plug-tool\ndescription: plugin desc\n---\nplug body\n',
+        'utf8',
+      );
+      process.env.FUGUE_SKILLS_ROOT = skillsRoot;
+      process.env.FUGUE_PLUGINS_ROOT = pluginsRoot;
+      process.env.FUGUE_SKILLS_CATALOG = catalog;
+    });
+
+    afterEach(async () => {
+      delete process.env.FUGUE_SKILLS_ROOT;
+      delete process.env.FUGUE_PLUGINS_ROOT;
+      delete process.env.FUGUE_SKILLS_CATALOG;
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    it('indexes, injects, shows, and validates skills from all sources', async () => {
+      const indexed = await run(['skills', 'index', '--refresh']);
+      const injected = await run(['skills', 'inject', 'sys-tool,plug:plug-tool']);
+      const shown = await run(['skills', 'show', 'plug:plug-tool']);
+      const valid = await run(['skills', 'validate', '--dir', join(skillsRoot, 'my-tool')]);
+
+      expect(indexed.out).toContain('3 skills');
+      expect(await readFile(catalog, 'utf8')).toContain('plug:plug-tool\tplugin');
+      expect(injected.out).toContain('sys-tool');
+      expect(injected.out).toContain('plug:plug-tool');
+      expect(shown.out).toContain('plug body');
+      expect(valid.code).toBe(0);
+      expect(valid.out).toContain('✓ valid');
+    });
+  });
+
   describe('experience commands', () => {
     let dir: string;
     let store: string;
