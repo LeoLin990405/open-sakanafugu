@@ -32,7 +32,7 @@ jobs:
           GITLEAKS_CONFIG: ${{ github.workspace }}/.gitleaks.toml
 
   shell:
-    name: Shell syntax + lint
+    name: Launcher syntax + lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -47,7 +47,7 @@ jobs:
             sudo install "shellcheck-v${SC_VER}/shellcheck" /usr/local/bin/shellcheck
           fi
           shellcheck --version
-      - name: bash -n + shellcheck
+      - name: launcher syntax + shellcheck
         run: npm run lint:shell
       - name: Docs match code (README ↔ fuguectl subcommands/counts)
         run: npm run check:docs

@@ -27,7 +27,7 @@ repos:
         pass_filenames: false
 
       - id: check-shell
-        name: shell syntax + shellcheck
+        name: launcher syntax + shellcheck
         entry: node scripts/run-ts.mjs scripts/check-shell.ts
         language: system
         pass_filenames: false

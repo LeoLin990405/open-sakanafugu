@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
 const root = resolve(
@@ -35,15 +35,34 @@ const scripts = [
 
 const uniqueScripts = [...new Set(scripts)];
 let failed = false;
+const shellScripts = [];
+const nodeScripts = [];
 
-console.log(`── bash -n syntax (${String(uniqueScripts.length)} scripts) ──`);
 for (const script of uniqueScripts) {
+  const text = readFileSync(join(root, script), "utf8");
+  const firstLine = text.split(/\r?\n/u, 1)[0] ?? "";
+  if (firstLine.includes("node")) nodeScripts.push(script);
+  else shellScripts.push(script);
+}
+
+console.log(`── syntax (${String(uniqueScripts.length)} scripts) ──`);
+for (const script of shellScripts) {
   const result = spawnSync("bash", ["-n", script], {
     cwd: root,
     stdio: "ignore",
   });
   if (result.status !== 0) {
     console.log(`  ✗ syntax: ${script}`);
+    failed = true;
+  }
+}
+for (const script of nodeScripts) {
+  const result = spawnSync(process.execPath, ["--check", script], {
+    cwd: root,
+    stdio: "ignore",
+  });
+  if (result.status !== 0) {
+    console.log(`  ✗ node syntax: ${script}`);
     failed = true;
   }
 }
@@ -55,7 +74,7 @@ const shellcheckProbe = spawnSync("shellcheck", ["--version"], {
 });
 if (shellcheckProbe.status === 0) {
   console.log("── shellcheck -S warning (via .shellcheckrc) ──");
-  const result = spawnSync("shellcheck", ["-S", "warning", ...uniqueScripts], {
+  const result = spawnSync("shellcheck", ["-S", "warning", ...shellScripts], {
     cwd: root,
     stdio: "inherit",
   });

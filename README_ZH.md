@@ -187,13 +187,13 @@ node dist/cli/main.js self-harness run \
 | 路径                           | 内容                                                                               |
 | ------------------------------ | ---------------------------------------------------------------------------------- |
 | `backends/bin/`                | 模型启动器、registry、`cc-models` 和 `cc-sync`。                                   |
-| `backends/{install,verify}.sh` | 本地安装和 launcher 验证。                                                         |
+| `backends/{install,verify}.ts` | 本地安装和 launcher 验证。                                                         |
 | `orchestration/fuguectl/`      | `fuguectl`、shell libraries、templates、workspaces、skill bundle 和测试。          |
 | `orchestration/fugue-cc/`      | runtime bridge 使用的脱敏 provider 配置模板。                                      |
 | `orchestration/cn-plugin/`     | Claude Code `/cn:*` 插件和 dispatch agent。                                        |
 | `orchestration/agent-team/`    | 更高层多模型规划示例。                                                             |
 | `engine/`                      | TypeScript package、domain ports、adapters、CLI 和 Self-Harness loop。             |
-| `scripts/`                     | 密钥扫描、shell lint、docs drift check 和 skill installer。                        |
+| `scripts/`                     | 密钥扫描、launcher lint、docs drift check 和 skill installer。                     |
 | `docs/`                        | Agent runtime、workflow、architecture、parity、integrations 和 Self-Harness 指南。 |
 | `AGENTS.md`                    | Claude Code、Codex、OpenCode 都可读取的跨 harness 操作入口。                       |
 
@@ -209,10 +209,10 @@ node dist/cli/main.js self-harness run \
 ## 开发
 
 ```bash
-make ci          # scan + shell lint + docs + plugin/fuguectl + engine checks
+make ci          # scan + launcher lint + docs + plugin/fuguectl + engine checks
 make ci-clean    # 同上，但先干净安装 engine dependencies
 make scan        # 密钥泄漏 gate
-make lint        # bash -n + shellcheck
+make lint        # launcher syntax + shellcheck
 make check-docs  # README + Self-Harness docs drift gate
 make test        # cn-plugin + fuguectl selftest
 make test-engine # TypeScript engine typecheck + lint + vitest

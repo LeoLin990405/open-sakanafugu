@@ -214,13 +214,13 @@ The strict JSON spec, editable surfaces, validation rules, and smoke tests are i
 | Path                           | Contents                                                                             |
 | ------------------------------ | ------------------------------------------------------------------------------------ |
 | `backends/bin/`                | Model launchers, registry, `cc-models`, and `cc-sync`.                               |
-| `backends/{install,verify}.sh` | Local install and launcher verification.                                             |
+| `backends/{install,verify}.ts` | Local install and launcher verification.                                             |
 | `orchestration/fuguectl/`      | `fuguectl`, shell libraries, templates, workspaces, skill bundle, and tests.         |
 | `orchestration/fugue-cc/`      | Sanitized provider configuration template for the runtime bridge.                    |
 | `orchestration/cn-plugin/`     | Claude Code `/cn:*` plugin and dispatch agent.                                       |
 | `orchestration/agent-team/`    | Higher-level multi-model planning example.                                           |
 | `engine/`                      | TypeScript package, domain ports, adapters, CLI, and Self-Harness loop.              |
-| `scripts/`                     | Secret scan, shell lint, docs drift check, and skill installer.                      |
+| `scripts/`                     | Secret scan, launcher lint, docs drift check, and skill installer.                   |
 | `docs/`                        | Agent runtime, workflow, architecture, parity, integrations, and Self-Harness guide. |
 | `AGENTS.md`                    | Cross-harness operator entry read by Claude Code, Codex, and OpenCode.               |
 
@@ -236,10 +236,10 @@ The strict JSON spec, editable surfaces, validation rules, and smoke tests are i
 ## Development
 
 ```bash
-make ci          # scan + shell lint + docs + plugin/fuguectl + engine checks
+make ci          # scan + launcher lint + docs + plugin/fuguectl + engine checks
 make ci-clean    # same, but clean-installs engine dependencies first
 make scan        # secret-leak gate
-make lint        # bash -n + shellcheck
+make lint        # launcher syntax + shellcheck
 make check-docs  # README + Self-Harness docs drift gate
 make test        # cn-plugin + fuguectl selftest
 make test-engine # TypeScript engine typecheck + lint + vitest

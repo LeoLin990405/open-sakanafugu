@@ -1,30 +1,87 @@
-#!/usr/bin/env bash
-# cc-models — small dispatcher for ~/bin/cc-* Claude Code model launchers.
-set -euo pipefail
+#!/usr/bin/env node
+import { constants, existsSync, lstatSync, readFileSync } from "node:fs";
+import { access, readlink } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 
-ROOT="${HOME}/bin"
-REGISTRY="${CC_MODELS_REGISTRY:-$ROOT/cc-model-registry.tsv}"
-RESEARCH="${CC_MODELS_RESEARCH:-$ROOT/cc-model-research.tsv}"
-BACKLOG="${CC_MODELS_BACKLOG:-$ROOT/cc-model-backlog.md}"
-COMMANDS=()
+const root = process.env.HOME
+  ? join(process.env.HOME, "bin")
+  : dirname(fileURLToPath(import.meta.url));
+const registry =
+  process.env.CC_MODELS_REGISTRY ?? join(root, "cc-model-registry.tsv");
+const researchFile =
+  process.env.CC_MODELS_RESEARCH ?? join(root, "cc-model-research.tsv");
+const backlogFile =
+  process.env.CC_MODELS_BACKLOG ?? join(root, "cc-model-backlog.md");
+const fallbackCommands = [
+  "cc-kimi",
+  "cc-glm",
+  "cc-qwen",
+  "cc-deepseek",
+  "cc-doubao",
+  "cc-minimax",
+  "cc-mimo",
+  "cc-stepfun",
+  "cc-longcat",
+  "cc-gemini",
+  "cc-grok",
+  "cc-local",
+];
 
-load_commands() {
-  local cmd provider route default_model opus sonnet haiku fast source
-  if [ -f "$REGISTRY" ]; then
-    while IFS=$'\t' read -r cmd provider route default_model opus sonnet haiku fast source; do
-      case "$cmd" in ""|\#*) continue ;; esac
-      COMMANDS+=("$cmd")
-    done < "$REGISTRY"
-  else
-    COMMANDS=(cc-kimi cc-glm cc-qwen cc-deepseek cc-doubao cc-minimax cc-mimo cc-stepfun cc-longcat cc-gemini cc-grok cc-local)
-  fi
-}
+const hasExecutable = async (path) => {
+  try {
+    await access(path, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
-load_commands
+const loadRows = (file) => {
+  if (!existsSync(file)) return [];
+  return readFileSync(file, "utf8")
+    .split(/\r?\n/u)
+    .map((line) => line.split("\t"))
+    .filter((cols) => {
+      const first = cols[0]?.trim() ?? "";
+      return first.length > 0 && !first.startsWith("#");
+    });
+};
 
-usage() {
-  cat >&2 <<'EOF'
-Usage: cc-models <command>
+const loadCommands = () => {
+  const rows = loadRows(registry);
+  if (rows.length === 0) return fallbackCommands;
+  return rows
+    .map((cols) => cols[0])
+    .filter((cmd) => cmd !== undefined && cmd.length > 0);
+};
+
+const commands = loadCommands();
+const print = (message = "") => console.log(message);
+const warn = (message) => console.error(`[cc-models] ${message}`);
+const normalizeCmd = (value = "") =>
+  value.length === 0 || value.startsWith("cc-") ? value : `cc-${value}`;
+
+const scriptPathFor = async (cmd) => {
+  const path = join(root, cmd);
+  if (existsSync(path) && lstatSync(path).isSymbolicLink()) {
+    const target = await readlink(path);
+    return target.startsWith("/") ? target : join(root, target);
+  }
+  return path;
+};
+
+const targetFor = async (cmd) => {
+  const path = join(root, cmd);
+  if (existsSync(path) && lstatSync(path).isSymbolicLink())
+    return await readlink(path);
+  if (existsSync(path)) return path;
+  return "missing";
+};
+
+const usage = () => {
+  console.error(`Usage: cc-models <command>
 
 Commands:
   list      Show high-frequency cc-* launchers and configured models
@@ -36,139 +93,109 @@ Commands:
   env       Print non-secret env for one launcher: cc-models env deepseek
   profiles  Show provider-specific profile knobs
   audit     Run syntax checks for installed launchers, list, and doctor
-  paths     Show launcher paths
-EOF
-}
+  paths     Show launcher paths`);
+};
 
-normalize_cmd() {
-  case "${1:-}" in
-    cc-*) printf '%s' "$1" ;;
-    "") printf '' ;;
-    *) printf 'cc-%s' "$1" ;;
-  esac
-}
+const pad = (value, width) => value.padEnd(width, " ");
 
-target_for() {
-  local cmd="$1"
-  local path="$ROOT/$cmd"
-  if [ -L "$path" ]; then
-    readlink "$path"
-  elif [ -e "$path" ]; then
-    printf '%s' "$path"
-  else
-    printf 'missing'
-  fi
-}
+const listModels = async () => {
+  for (const cmd of commands) {
+    const path = join(root, cmd);
+    if (!(await hasExecutable(path))) {
+      print(`${pad(cmd, 12)} missing`);
+      continue;
+    }
+    const result = spawnSync(path, ["--list"], { encoding: "utf8" });
+    const raw = result.status === 0 ? result.stdout : "unavailable";
+    const models = raw
+      .split(/\r?\n/u)
+      .filter((line) => line.length > 0)
+      .join(", ");
+    print(`${pad(cmd, 12)} ${models}`);
+  }
+};
 
-script_path_for() {
-  local cmd="$1"
-  local path="$ROOT/$cmd"
-  local target
-  if [ -L "$path" ]; then
-    target="$(readlink "$path")"
-    case "$target" in
-      /*) printf '%s' "$target" ;;
-      *) printf '%s/%s' "$ROOT" "$target" ;;
-    esac
-  else
-    printf '%s' "$path"
-  fi
-}
+const doctorAll = async (only = "") => {
+  const normalized = normalizeCmd(only);
+  for (const cmd of commands) {
+    if (normalized.length > 0 && cmd !== normalized) continue;
+    const path = join(root, cmd);
+    if (!(await hasExecutable(path))) {
+      print(`${cmd}: missing`);
+      continue;
+    }
+    const result = spawnSync(path, ["--doctor"], { stdio: "inherit" });
+    if (result.status !== 0) print(`${cmd}: doctor failed`);
+    print();
+  }
+};
 
-list_models() {
-  local cmd path raw models
-  for cmd in "${COMMANDS[@]}"; do
-    path="$ROOT/$cmd"
-    if [ ! -x "$path" ]; then
-      printf '%-12s missing\n' "$cmd"
-      continue
-    fi
-    if ! raw="$("$path" --list 2>/dev/null)"; then
-      raw="unavailable"
-    fi
-    models="$(printf '%s\n' "$raw" | awk 'BEGIN{first=1} {printf "%s%s", (first ? "" : ", "), $0; first=0} END{print ""}')"
-    printf '%-12s %s\n' "$cmd" "$models"
-  done
-}
+const envOne = async (value = "") => {
+  const cmd = normalizeCmd(value);
+  if (cmd.length === 0) {
+    warn("env requires a launcher name, e.g. qwen");
+    process.exit(2);
+  }
+  const path = join(root, cmd);
+  if (!(await hasExecutable(path))) {
+    warn(`launcher not found: ${cmd}`);
+    process.exit(127);
+  }
+  const result = spawnSync(path, ["--env"], { stdio: "inherit" });
+  process.exit(result.status ?? 1);
+};
 
-doctor_all() {
-  local only="${1:-}"
-  local cmd path normalized
-  normalized="$(normalize_cmd "$only")"
-  for cmd in "${COMMANDS[@]}"; do
-    [ -n "$normalized" ] && [ "$cmd" != "$normalized" ] && continue
-    path="$ROOT/$cmd"
-    if [ ! -x "$path" ]; then
-      printf '%s: missing\n' "$cmd"
-      continue
-    fi
-    if ! "$path" --doctor; then
-      printf '%s: doctor failed\n' "$cmd"
-    fi
-    echo
-  done
-}
+const paths = async () => {
+  for (const cmd of commands) {
+    print(`${pad(cmd, 12)} ${join(root, cmd)} -> ${await targetFor(cmd)}`);
+  }
+};
 
-env_one() {
-  local cmd path
-  cmd="$(normalize_cmd "${1:-}")"
-  if [ -z "$cmd" ]; then
-    echo "[cc-models] env requires a launcher name, e.g. qwen" >&2
-    exit 2
-  fi
-  path="$ROOT/$cmd"
-  if [ ! -x "$path" ]; then
-    echo "[cc-models] launcher not found: $cmd" >&2
-    exit 127
-  fi
-  "$path" --env
-}
+const matrix = () => {
+  if (!existsSync(registry)) {
+    warn(`registry missing: ${registry}`);
+    process.exit(1);
+  }
+  print(
+    `${pad("command", 12)} ${pad("provider", 10)} ${pad("route", 22)} ${pad("default", 28)} ${pad("opus", 28)} ${pad("sonnet", 28)} ${pad("haiku", 24)}`,
+  );
+  for (const cols of loadRows(registry)) {
+    if (cols.length < 8) continue;
+    print(
+      `${pad(cols[0] ?? "", 12)} ${pad(cols[1] ?? "", 10)} ${pad(cols[2] ?? "", 22)} ${pad(cols[3] ?? "", 28)} ${pad(cols[4] ?? "", 28)} ${pad(cols[5] ?? "", 28)} ${pad(cols[6] ?? "", 24)}`,
+    );
+  }
+};
 
-paths() {
-  local cmd
-  for cmd in "${COMMANDS[@]}"; do
-    printf '%-12s %s -> %s\n' "$cmd" "$ROOT/$cmd" "$(target_for "$cmd")"
-  done
-}
+const sources = () => {
+  if (!existsSync(registry)) {
+    warn(`registry missing: ${registry}`);
+    process.exit(1);
+  }
+  for (const cols of loadRows(registry)) {
+    if (cols.length < 9) continue;
+    print(`${pad(cols[0] ?? "", 12)} ${cols[8] ?? ""}`);
+  }
+};
 
-matrix() {
-  if [ ! -f "$REGISTRY" ]; then
-    echo "[cc-models] registry missing: $REGISTRY" >&2
-    exit 1
-  fi
-  awk -F '\t' '
-    BEGIN { printf "%-12s %-10s %-22s %-28s %-28s %-28s %-24s\n", "command", "provider", "route", "default", "opus", "sonnet", "haiku" }
-    /^[[:space:]]*#/ || NF < 8 { next }
-    { printf "%-12s %-10s %-22s %-28s %-28s %-28s %-24s\n", $1, $2, $3, $4, $5, $6, $7 }
-  ' "$REGISTRY"
-}
+const research = () => {
+  if (!existsSync(researchFile)) {
+    warn(`research file missing: ${researchFile}`);
+    process.exit(1);
+  }
+  print(
+    `${pad("command", 12)} ${pad("grade", 6)} ${pad("status", 18)} ${pad("official_doc", 54)} next_action`,
+  );
+  for (const cols of loadRows(researchFile)) {
+    if (cols.length < 6) continue;
+    print(
+      `${pad(cols[0] ?? "", 12)} ${pad(cols[3] ?? "", 6)} ${pad(cols[4] ?? "", 18)} ${pad(cols[1] ?? "", 54)} ${cols[5] ?? ""}`,
+    );
+  }
+};
 
-sources() {
-  if [ ! -f "$REGISTRY" ]; then
-    echo "[cc-models] registry missing: $REGISTRY" >&2
-    exit 1
-  fi
-  awk -F '\t' '
-    /^[[:space:]]*#/ || NF < 9 { next }
-    { printf "%-12s %s\n", $1, $9 }
-  ' "$REGISTRY"
-}
-
-research() {
-  if [ ! -f "$RESEARCH" ]; then
-    echo "[cc-models] research file missing: $RESEARCH" >&2
-    exit 1
-  fi
-  awk -F '\t' '
-    BEGIN { printf "%-12s %-6s %-18s %-54s %s\n", "command", "grade", "status", "official_doc", "next_action" }
-    /^[[:space:]]*#/ || NF < 6 { next }
-    { printf "%-12s %-6s %-18s %-54s %s\n", $1, $4, $5, $2, $6 }
-  ' "$RESEARCH"
-}
-
-profiles() {
-  cat <<'EOF'
-command      env var            profiles
+const profiles = () => {
+  print(`command      env var            profiles
 cc-kimi      KIMI_*             kimi-for-coding route; KIMI_NO_CACHE=1 opt-out of prompt cache
 cc-glm       GLM_PROFILE        balanced, max/opus, turbo, cheap/lite; GLM_THINKING=auto|enabled|disabled
 cc-qwen      QWEN_PROFILE       coder, coding-plan/plan, token/token-plan, max/payg/intl, cheap/flash
@@ -177,59 +204,99 @@ cc-doubao    DOUBAO_PROFILE     latest, agent, vision/frontend, pinned, router, 
 cc-minimax   MINIMAX_PROFILE    stable/token, highspeed/payg, cheap/lite; MINIMAX_REGION=cn|global
 cc-mimo      MIMO_PROFILE       pro, latest/v25, multimodal/omni, fast/flash; MIMO_REGION=sgp|public|cn|ams
 cc-stepfun   STEPFUN_PROFILE    reasoning, fast/flash, router; STEPFUN_REASONING=low|high|none
-cc-longcat   LONGCAT_PROFILE    agent, fast/lite, stable/chat, thinking; Preview capped at 64K
-EOF
-}
+cc-longcat   LONGCAT_PROFILE    agent, fast/lite, stable/chat, thinking; Preview capped at 64K`);
+};
 
-backlog() {
-  if [ ! -f "$BACKLOG" ]; then
-    echo "[cc-models] backlog file missing: $BACKLOG" >&2
-    exit 1
-  fi
-  sed -n '1,260p' "$BACKLOG"
-}
+const backlog = () => {
+  if (!existsSync(backlogFile)) {
+    warn(`backlog file missing: ${backlogFile}`);
+    process.exit(1);
+  }
+  print(
+    readFileSync(backlogFile, "utf8").split(/\r?\n/u).slice(0, 260).join("\n"),
+  );
+};
 
-audit() {
-  local cmd script failed=0
-  echo "[cc-models] syntax"
-  bash -n "$0" "$ROOT/cc-model-lib.sh" || failed=1
-	  for cmd in "${COMMANDS[@]}"; do
-	    script="$(script_path_for "$cmd")"
-	    if [ -f "$script" ]; then
-	      bash -n "$script" || failed=1
-	    else
-	      if [ "${CC_MODELS_AUDIT_REQUIRE_ALL:-0}" = "1" ]; then
-	        echo "[cc-models] missing script for $cmd: $script" >&2
-	        failed=1
-	      else
-	        echo "[cc-models] skip missing optional launcher $cmd: $script" >&2
-	      fi
-	    fi
-	  done
-  echo
-  echo "[cc-models] list"
-  list_models || failed=1
-  echo
-  echo "[cc-models] doctor"
-  doctor_all || failed=1
-  return "$failed"
-}
+const audit = async () => {
+  let failed = false;
+  print("[cc-models] syntax");
+  const nodeCheck = spawnSync(
+    process.execPath,
+    ["--check", fileURLToPath(import.meta.url)],
+    {
+      stdio: "inherit",
+    },
+  );
+  if (nodeCheck.status !== 0) failed = true;
 
-case "${1:-}" in
-  list) list_models ;;
-  matrix) matrix ;;
-  sources) sources ;;
-  research) research ;;
-  backlog) backlog ;;
-  doctor) doctor_all "${2:-}" ;;
-  env) env_one "${2:-}" ;;
-  profiles) profiles ;;
-  audit) audit ;;
-  paths) paths ;;
-  -h|--help|help|"") usage ;;
-  *)
-    echo "[cc-models] unknown command: $1" >&2
-    usage
-    exit 2
-    ;;
-esac
+  const libCheck = spawnSync("bash", ["-n", join(root, "cc-model-lib.sh")], {
+    stdio: "inherit",
+  });
+  if (libCheck.status !== 0) failed = true;
+
+  for (const cmd of commands) {
+    const script = await scriptPathFor(cmd);
+    if (existsSync(script)) {
+      const result = spawnSync("bash", ["-n", script], { stdio: "inherit" });
+      if (result.status !== 0) failed = true;
+    } else if (process.env.CC_MODELS_AUDIT_REQUIRE_ALL === "1") {
+      warn(`missing script for ${cmd}: ${script}`);
+      failed = true;
+    } else {
+      warn(`skip missing optional launcher ${cmd}: ${script}`);
+    }
+  }
+
+  print();
+  print("[cc-models] list");
+  await listModels();
+  print();
+  print("[cc-models] doctor");
+  await doctorAll();
+  process.exit(failed ? 1 : 0);
+};
+
+const [command = "", arg = ""] = process.argv.slice(2);
+
+switch (command) {
+  case "list":
+    await listModels();
+    break;
+  case "matrix":
+    matrix();
+    break;
+  case "sources":
+    sources();
+    break;
+  case "research":
+    research();
+    break;
+  case "backlog":
+    backlog();
+    break;
+  case "doctor":
+    await doctorAll(arg);
+    break;
+  case "env":
+    await envOne(arg);
+    break;
+  case "profiles":
+    profiles();
+    break;
+  case "audit":
+    await audit();
+    break;
+  case "paths":
+    await paths();
+    break;
+  case "":
+  case "-h":
+  case "--help":
+  case "help":
+    usage();
+    break;
+  default:
+    warn(`unknown command: ${command}`);
+    usage();
+    process.exit(2);
+}
