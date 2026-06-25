@@ -12,6 +12,7 @@ import type { HarnessConfig } from '../domain/self-harness.js';
 import { EDITABLE_SURFACES } from '../domain/self-harness.js';
 import { parseSelfHarnessSpec } from '../domain/self-harness-spec.js';
 import { NodeFileSystem } from '../infra/node-file-system.js';
+import { NodeCommandRunner } from '../infra/node-command-runner.js';
 import { buildCli } from './cli.js';
 
 const collector = (): { stream: Writable; text: () => string } => {
@@ -317,6 +318,69 @@ describe('fugue CLI', () => {
       expect(called).toContain('cc-deepseek');
       expect(called).toContain('cc-kimi');
       expect(called).toContain('coder');
+    });
+  });
+
+  describe('preflight command', () => {
+    let dir: string;
+    let clean: string;
+
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), 'fugue-preflight-'));
+      clean = join(dir, 'clean.config');
+      await writeFile(
+        clean,
+        [
+          '[agents.cc-deepseek]',
+          'url = "https://api.deepseek.com/anthropic"',
+          'model = "deepseek-v4-pro"',
+          '[agents.coder]',
+          'model = "gpt-5.5"',
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+    });
+
+    afterEach(async () => {
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    it('runs deterministic provider config checks in config-only mode', async () => {
+      const gemini = join(dir, 'gemini.config');
+      const comment = join(dir, 'comment.config');
+      const empty = join(dir, 'empty.config');
+      await writeFile(gemini, '[agents.cc-x]\nmodel = "gemini-3.5-flash"\n', 'utf8');
+      await writeFile(comment, '# do not use gemini\n[agents.cc-z]\nmodel = "glm-5.2"\n', 'utf8');
+      await writeFile(empty, '[agents.cc-w]\nmodel = ""\n', 'utf8');
+
+      const cleanResult = await run(['preflight', '--config-only', clean]);
+      const geminiResult = await run(['preflight', '--config-only', gemini]);
+      const commentResult = await run(['preflight', '--config-only', comment]);
+      const emptyResult = await run(['preflight', '--config-only', empty]);
+
+      expect(cleanResult.code).toBe(0);
+      expect(cleanResult.out).toContain('preflight GO');
+      expect(geminiResult.code).toBe(1);
+      expect(geminiResult.out).toContain('no-Gemini hard rule');
+      expect(commentResult.code).toBe(0);
+      expect(emptyResult.code).toBe(1);
+      expect(emptyResult.out).toContain('empty model value');
+    });
+
+    it('reports the provider worktree gitignore guard as warn-only', async () => {
+      const work = join(dir, 'provider-work');
+      await mkdir(work, { recursive: true });
+      await new NodeCommandRunner().run('git', ['-C', work, 'init', '-q']);
+
+      const notIgnored = await run(['preflight', '--config-only', clean, '--work', work]);
+      await writeFile(join(work, '.gitignore'), '.fugue-cc/\n', 'utf8');
+      const ignored = await run(['preflight', '--config-only', clean, '--work', work]);
+
+      expect(notIgnored.code).toBe(0);
+      expect(notIgnored.out).toContain('not gitignored');
+      expect(ignored.code).toBe(0);
+      expect(ignored.out).toContain('gitignored');
     });
   });
 
