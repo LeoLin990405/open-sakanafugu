@@ -351,6 +351,216 @@ describe('fugue CLI', () => {
     });
   });
 
+  describe('loop command', () => {
+    let dir: string;
+    let cache: string;
+
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), 'fugue-loop-'));
+      cache = join(dir, 'cache');
+    });
+
+    afterEach(async () => {
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    const args = (...rest: readonly string[]): readonly string[] => [
+      'loop',
+      '--cache',
+      cache,
+      ...rest,
+    ];
+
+    const token = async (): Promise<{ code: number; token: string; out: string; err: string }> => {
+      const result = await run(args('decide'));
+      return { ...result, token: result.out.split(/\r?\n/u)[0] ?? '' };
+    };
+
+    it('records rounds, maintains keep-best, and decides exit states', async () => {
+      const notInit = await run(args('decide'));
+      const recordBeforeInit = await run(
+        args('record', '1', '--gate', 'pass', '--verdict', 'NEEDSFIX', '--findings', '1'),
+      );
+
+      const init = await run(args('init', '--max', '3', '--best-sha', 'sha0'));
+      const noRound = await run(args('decide'));
+      const round1 = await run(
+        args(
+          'record',
+          '1',
+          '--gate',
+          'pass',
+          '--verdict',
+          'NEEDSFIX',
+          '--findings',
+          '3',
+          '--sha',
+          'sha1',
+        ),
+      );
+      const continue1 = await token();
+      const metaAfterRound1 = await readFile(join(cache, 'loop', 'meta'), 'utf8');
+      const round2 = await run(
+        args(
+          'record',
+          '2',
+          '--gate',
+          'pass',
+          '--verdict',
+          'NEEDSFIX',
+          '--findings',
+          '2',
+          '--sha',
+          'sha2',
+        ),
+      );
+      const continue2 = await token();
+      const metaAfterRound2 = await readFile(join(cache, 'loop', 'meta'), 'utf8');
+      await run(
+        args(
+          'record',
+          '3',
+          '--gate',
+          'fail',
+          '--verdict',
+          'NEEDSFIX',
+          '--findings',
+          '2',
+          '--sha',
+          'sha3',
+        ),
+      );
+      const max = await token();
+      const metaAfterRound3 = await readFile(join(cache, 'loop', 'meta'), 'utf8');
+
+      expect(notInit.code).toBe(2);
+      expect(notInit.err).toContain('loop not init');
+      expect(recordBeforeInit.code).toBe(2);
+      expect(init.code).toBe(0);
+      expect(await readFile(join(cache, 'loop', 'meta'), 'utf8')).toContain('max_rounds=3');
+      expect(noRound.code).toBe(2);
+      expect(noRound.err).toContain('no round recorded yet');
+      expect(round1.out).toContain('best updated');
+      expect(continue1.token).toBe('CONTINUE');
+      expect(continue1.code).toBe(10);
+      expect(metaAfterRound1).toContain('best_n=3');
+      expect(metaAfterRound1).toContain('best_sha=sha1');
+      expect(round2.out).toContain('best updated');
+      expect(continue2.token).toBe('CONTINUE');
+      expect(metaAfterRound2).toContain('best_n=2');
+      expect(metaAfterRound2).toContain('best_sha=sha2');
+      expect(max.token).toBe('ESCALATE_MAX');
+      expect(max.code).toBe(20);
+      expect(metaAfterRound3).toContain('best_sha=sha2');
+    });
+
+    it('detects non-convergence, confirmation, done, and ask-user branches', async () => {
+      await run(args('init', '--max', '5'));
+      await run(args('record', '1', '--gate', 'pass', '--verdict', 'NEEDSFIX', '--findings', '3'));
+      await run(args('record', '2', '--gate', 'pass', '--verdict', 'NEEDSFIX', '--findings', '3'));
+      const nonconv = await token();
+
+      await run(args('init', '--max', '5'));
+      await run(args('record', '1', '--gate', 'pass', '--verdict', 'NEEDSFIX', '--findings', '5'));
+      await run(
+        args(
+          'record',
+          '2',
+          '--gate',
+          'pass',
+          '--verdict',
+          'NEEDSFIX',
+          '--findings',
+          '2',
+          '--same-class',
+        ),
+      );
+      const sameClass = await token();
+
+      await run(args('init', '--max', '5'));
+      await run(args('record', '1', '--gate', 'pass', '--verdict', 'NEEDSFIX', '--findings', '1'));
+      await run(args('record', '2', '--gate', 'pass', '--verdict', 'ACCEPTED', '--findings', '0'));
+      const confirm = await token();
+      await run(args('record', '3', '--gate', 'pass', '--verdict', 'ACCEPTED', '--findings', '0'));
+      const done = await token();
+
+      await run(args('init', '--max', '5'));
+      await run(
+        args(
+          'record',
+          '1',
+          '--gate',
+          'pass',
+          '--verdict',
+          'NEEDSFIX',
+          '--findings',
+          '3',
+          '--ask-user',
+          '1',
+        ),
+      );
+      const askUser = await token();
+
+      expect(nonconv.token).toBe('ESCALATE_NONCONV');
+      expect(nonconv.code).toBe(20);
+      expect(sameClass.token).toBe('ESCALATE_NONCONV');
+      expect(confirm.token).toBe('CONFIRM');
+      expect(confirm.code).toBe(10);
+      expect(done.token).toBe('DONE');
+      expect(done.code).toBe(0);
+      expect(askUser.token).toBe('ASK_USER');
+      expect(askUser.code).toBe(11);
+    });
+
+    it('normalizes verdicts, validates inputs, and renders status', async () => {
+      await run(args('init', '--max', '3'));
+      await run(
+        args(
+          'record',
+          '1',
+          '--gate',
+          'pass',
+          '--verdict',
+          'needs fix',
+          '--findings',
+          '2',
+          '--ask-user',
+          '1',
+        ),
+      );
+      const rounds = await readFile(join(cache, 'loop', 'rounds.tsv'), 'utf8');
+      const status = await run(args('status'));
+      const badGate = await run(
+        args('record', '1', '--gate', 'bogus', '--verdict', 'ACCEPTED', '--findings', '0'),
+      );
+      const badFindings = await run(
+        args('record', '1', '--gate', 'pass', '--verdict', 'ACCEPTED', '--findings', '-1'),
+      );
+      const badAsk = await run(
+        args(
+          'record',
+          '2',
+          '--gate',
+          'pass',
+          '--verdict',
+          'NEEDSFIX',
+          '--findings',
+          '1',
+          '--ask-user',
+          '2',
+        ),
+      );
+
+      expect(rounds.split('\t')[2]).toBe('NEEDSFIX');
+      expect(status.out).toContain('ask-user');
+      expect(status.out).toContain('NEEDSFIX');
+      expect(badGate.code).toBe(2);
+      expect(badFindings.code).toBe(2);
+      expect(badAsk.code).toBe(2);
+      expect(badAsk.err).toContain('cannot be >');
+    });
+  });
+
   describe('run command', () => {
     let dir: string;
     let cache: string;
