@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# fuguectl — primary control-plane entrypoint for the fugue workflow.
+#
+# `fanout` is kept as a backward-compatible alias; route through it so the
+# legacy driver remains the single dispatch table until the internal filenames
+# are renamed in a later migration.
+set -uo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FUGUE_DRIVER_NAME=fuguectl exec bash "$HERE/fanout" "$@"

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Chinese-model multi-agent coding workflow: backends + fanout + ccb + bounded review-fix loop + auto-sync",
+  "description": "Chinese-model multi-agent coding workflow: backends + fuguectl + ccb + bounded review-fix loop + auto-sync",
   "license": "Apache-2.0",
   "author": "BicaMind Labs",
   "homepage": "https://github.com/BicaMindLabs/fugue",
@@ -16,12 +16,15 @@
   },
   "scripts": {
     "test:plugin": "node --check orchestration/cn-plugin/cn/scripts/cn-companion.mjs && node orchestration/cn-plugin/cn/scripts/cn-companion.test.mjs",
-    "test:fanout": "bash orchestration/fanout/fanout selftest",
-    "test:engine": "cd engine && npm ci && npm run check",
-    "test": "npm run test:plugin && npm run test:fanout",
+    "test:fuguectl": "bash orchestration/fanout/fuguectl selftest",
+    "test:fanout": "npm run test:fuguectl",
+    "test:engine": "cd engine && npm run check",
+    "test:engine:ci": "cd engine && npm ci && npm run check",
+    "test": "npm run test:plugin && npm run test:fuguectl",
     "scan": "bash scripts/scan-secrets.sh",
     "lint:shell": "bash scripts/check-shell.sh",
     "check:docs": "bash scripts/check-docs.sh",
-    "ci": "npm run scan && npm run lint:shell && npm run check:docs && npm test"
+    "ci": "npm run scan && npm run lint:shell && npm run check:docs && npm test && npm run test:engine",
+    "ci:clean": "npm run scan && npm run lint:shell && npm run check:docs && npm test && npm run test:engine:ci"
   }
 }

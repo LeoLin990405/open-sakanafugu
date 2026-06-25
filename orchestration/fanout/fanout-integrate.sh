@@ -42,6 +42,14 @@ case "$onconflict" in abort|skip) ;; *) die "--onconflict must be abort|skip";; 
 
 # worktree absolute path (ws_parent absolute → use directly, else relative to work)
 wt_path(){ case "$ws_parent" in /*) printf '%s/%s' "$ws_parent" "$1";; *) printf '%s/%s/%s' "$work" "$ws_parent" "$1";; esac; }
+changed_files(){
+  local wt="$1"
+  {
+    git -C "$wt" diff --name-only
+    git -C "$wt" diff --name-only --cached
+    git -C "$wt" ls-files --others --exclude-standard
+  } | awk 'NF' | sort -u
+}
 
 # out-of-bounds detection (borrowed from Lynn: enforce ownership/forbidden on the orchestrator side, do not trust worker self-discipline)
 _match_any(){  # whether file matches any glob in the comma list
@@ -73,11 +81,10 @@ report=()
 for ag in $agents; do
   wt="$(wt_path "$ag")"
   if [ ! -d "$wt" ]; then missing+=("$ag"); report+=("  ?  missing   $ag  ($wt does not exist)"); continue; fi
-  # whether the worktree has changes
-  if [ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then
+  files="$(changed_files "$wt" | tr '\n' ' ')"
+  if [ -z "$files" ]; then
     nochange+=("$ag"); report+=("  —  no-change $ag"); continue
   fi
-  files="$(git -C "$wt" status --porcelain | sed 's/^...//' | tr '\n' ' ')"
   # out-of-bounds detection: before cherry-pick, compare diff for changes outside owned / matching forbidden, isolate(do not integrate) if out-of-bounds
   bad="$(check_violation "$ag" "$files")"
   if [ -n "$bad" ]; then

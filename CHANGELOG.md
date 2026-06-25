@@ -5,15 +5,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/), versioning [SemV
 
 ## [Unreleased]
 
+### Added
+
+- **TypeScript engine Self-Harness loop (iter15)**: added the spec-driven `fugue self-harness template|run` CLI plus live Self-Harness adapters — `RunWeaknessMiner` mines `failed` / `no-agent` run events into verifier-grounded clusters, `HarnessBackedProposer` asks a configured harness agent for strict JSON full-surface replacement edits, and `TaskListHarnessValidator` re-runs fixed held-in / held-out cases with shell gates. Includes a strict JSON spec parser, `wireSelfHarness`, `docs/SELF_HARNESS.md`, robust balanced-array JSON extraction, defensive failure handling for expected harness/gate/model-output failures, and engine coverage for the live adapter edge cases.
+
 ### Changed
+
+- **CI script split for the TypeScript engine**: root `make ci` / `npm run ci` now stay fast and use installed engine dependencies, while `make ci-clean` / `npm run ci:clean` run `npm ci` inside `engine/` before `npm run check`; README/PR guidance now points fresh clones at the clean path and documents the separate GitHub Actions engine job.
 - **Engineering refactor — shared lib layer + caching (4 Codex-reviewed iterations)**: extracted `fanout-lib.sh` (`die`/`warn`/`say`, status symbols, portable `fx_mtime`, an atomic TTL cache layer `fcache_get`/`put`/`clear`, and `fx_cache_root`) and `fanout-testlib.sh` (`pass`/`fail` counters + `ok`/`skip`/`tdone`) — every tool/suite now sources them instead of copy-pasting (−16 duplicate `die()`, −18 test-boilerplate copies, −5 inline `CACHE_ROOT`). `preflight --probe` now caches endpoint liveness through the TTL cache (the HTTP code only, never the key; `FANOUT_PROBE_TTL`, default 20s); diagnostics (`doctor`/`fleet status`) stay deliberately un-cached so they read fresh. selftest total assertions 312 -> 313.
 
 ### Fixed
+
 - **`fleet-launch.py` reports out-of-ptys to the caller**: a status pipe makes the launcher exit `127` with a clean message (no traceback) when the host is out of pty devices, instead of a silent `0`; the parent waits only for the 1-byte launch status, never for the long-running detached worker. The 3 pty-dependent fleet checks now auto-`skip` (rather than fail) when ptys are unavailable, so `fanout selftest` is deterministically green regardless of host pty pressure.
 
 ### Added
+
 - **`docs/INTEGRATIONS.md`**: the **stable contract** for consuming fugue as an execution engine from a higher-level framework (fanout CLI / `--harness` dispatch / backends / allocate / cache / fleet / preflight / no-Gemini); CivAgent integration roadmap (two repos with clean dependencies, not a flat merge).
-- **Multi-harness adapters (the foundation for civagent dependency integration)**: `AGENTS.md` cross-harness entry point (read by Claude Code / Codex / OpenCode alike); `fanout dispatch --harness ccb|codex|opencode` — selectable dispatch executor (ccb=Claude Code cc-* clones / codex=codex exec / opencode=opencode run), where `<target>` means different things per harness; `FANOUT_CODEX`/`FANOUT_OPENCODE` can be stubbed. dispatch self-tests +3 (codex/opencode/unknown harness).
+- **Multi-harness adapters (the foundation for civagent dependency integration)**: `AGENTS.md` cross-harness entry point (read by Claude Code / Codex / OpenCode alike); `fanout dispatch --harness ccb|codex|opencode` — selectable dispatch executor (ccb=Claude Code cc-\* clones / codex=codex exec / opencode=opencode run), where `<target>` means different things per harness; `FANOUT_CODEX`/`FANOUT_OPENCODE` can be stubbed. dispatch self-tests +3 (codex/opencode/unknown harness).
 - Architecture SVG `docs/architecture.svg`, embedded in the README (image first + the text version tucked into `<details>`).
 - GitHub repo About description + 12 topics + homepage.
 - **Phase 5 `fanout loop` state machine**: turns the review-fix loop from SKILL.md pseudocode into an executable tool — `record` each round -> `decide` judges the 5 exit states (DONE / CONFIRM / CONTINUE / ESCALATE_MAX / ESCALATE_NONCONV), keep-best baseline maintained automatically, exit 0/10/20 graded. +24 self-tests.
@@ -30,14 +38,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/), versioning [SemV
 - **`fanout loop` finding bisection (auto-fix / ask-user)**: inspired by `kunchenguid/no-mistakes`'s finding model — `record --ask-user K` marks how many of N findings touch intent (architecture/semantics/trade-offs); `decide` adds the **`ASK_USER`** exit state (exit 11): the intent-touching ones escalate to a human for approve/fix/skip, the rest are mechanically Edit-patched directly by Claude. Lower priority than ESCALATE_MAX/NONCONV. loop self-tests 24 -> 32. selftest total assertions 198 -> 206.
 
 ### Changed
-- **Renamed: open-sakanafugu -> fugue** (to escape the crowded `open*fugu` namespace and the name clash with trotsky1997/OpenFugu). A *fugue* weaves several independent voices into one by strict counterpoint — the multi-agent metaphor — and puns on *fugu*; the Sakana-Fugu framing stays in the README as "inspired by." Updated every project-name reference and hosting URL to BicaMindLabs/fugue.
-- **Differentiate from OpenFugu**: the `Relation to Sakana Fugu` section (both READMEs) now points to [trotsky1997/OpenFugu](https://github.com/trotsky1997/OpenFugu) — a sibling open *reimplementation* that actually trains TRINITY/Conductor and serves an API — and states plainly that fugue deliberately takes the training-free harness route. OpenFugu added to Acknowledgements.
-- **Bilingual README restored (EN + 简体中文)**: re-added `README_ZH.md` as a full, current Simplified-Chinese mirror of `README.md` (the earlier English-only migration had removed it; the resurrectable old copy was stale — wrong name, missing the validate gate / Sakana-Fugu sections). Added a language switcher to both, and restored bilingual enforcement in `check-docs.sh` (every `fanout <sub>` + the subcommand/test-suite counts must match the code in *both* READMEs — EN "N subcommands"/"N test suites", ZH "N 个子命令"/"N 套测试"). The rest of the repo stays English-only; only the README is bilingual.
-- **Repositioned the narrative around Sakana Fugu (the new name's framing)**: the README intro now leads with "many agents behind one interface, coordinated by orchestration not a bigger model," presents the 9-model fleet as the *workers* under that lens, and adds a **Relation to Sakana Fugu** section mapping TRINITY/Conductor concepts to this repo's pieces (one `fanout` CLI = the interface; Codex = the verifier; the Beta-Bernoulli `allocate` bandit = a training-free analogue of the learned coordinator; workspace/skills/ownership isolation = access-lists) with an honest same/different (training-free, self-hostable, inspired-not-derived). Acknowledgements + NOTICE credit Sakana AI's Fugu.
+
+- **Renamed: open-sakanafugu -> fugue** (to escape the crowded `open*fugu` namespace and the name clash with trotsky1997/OpenFugu). A _fugue_ weaves several independent voices into one by strict counterpoint — the multi-agent metaphor — and puns on _fugu_; the Sakana-Fugu framing stays in the README as "inspired by." Updated every project-name reference and hosting URL to BicaMindLabs/fugue.
+- **Differentiate from OpenFugu**: the `Relation to Sakana Fugu` section (both READMEs) now points to [trotsky1997/OpenFugu](https://github.com/trotsky1997/OpenFugu) — a sibling open _reimplementation_ that actually trains TRINITY/Conductor and serves an API — and states plainly that fugue deliberately takes the training-free harness route. OpenFugu added to Acknowledgements.
+- **Bilingual README restored (EN + 简体中文)**: re-added `README_ZH.md` as a full, current Simplified-Chinese mirror of `README.md` (the earlier English-only migration had removed it; the resurrectable old copy was stale — wrong name, missing the validate gate / Sakana-Fugu sections). Added a language switcher to both, and restored bilingual enforcement in `check-docs.sh` (every `fanout <sub>` + the subcommand/test-suite counts must match the code in _both_ READMEs — EN "N subcommands"/"N test suites", ZH "N 个子命令"/"N 套测试"). The rest of the repo stays English-only; only the README is bilingual.
+- **Repositioned the narrative around Sakana Fugu (the new name's framing)**: the README intro now leads with "many agents behind one interface, coordinated by orchestration not a bigger model," presents the 9-model fleet as the _workers_ under that lens, and adds a **Relation to Sakana Fugu** section mapping TRINITY/Conductor concepts to this repo's pieces (one `fanout` CLI = the interface; Codex = the verifier; the Beta-Bernoulli `allocate` bandit = a training-free analogue of the learned coordinator; workspace/skills/ownership isolation = access-lists) with an honest same/different (training-free, self-hostable, inspired-not-derived). Acknowledgements + NOTICE credit Sakana AI's Fugu.
 - **Repo is now English-only (i18n migration)**: translated all Chinese text across ~100 tracked files to English — every `fanout` tool-script comment / help block / `die()` message, the test labels, `docs/WORKFLOW.md` + `docs/AGENT_TEAM.md`, `CHANGELOG.md`, `CONTRIBUTING.md` / `SECURITY.md`, the backend launchers + `prompts/*.md`, GitHub issue/PR templates, Makefile/config dotfiles, and the SKILL/template/workspace assets. Removed the dedicated `README_ZH.md` (and its `简体中文` link/ToC entry) so the repo is single-language; `check-docs.sh` dropped its now-dead README_ZH branch while keeping README.md enforcement intact. `.sh`↔`.test.sh` string assertions were kept consistent so all 312 selftest assertions still pass; untracked a stray `__pycache__/*.pyc` and gitignored it.
 - **README restructure**: the `fanout` CLI table went from a flat 17 rows -> grouped by pipeline phase (Setup & recon / Plan & routing / Dispatch & collect / Integrate·review·loop / Observe & maintain), easier to scan; the "why" + design principles add **adaptive routing** (Bayesian bandit) and the **docs-match-code gate**; acknowledgements add `kunchenguid/no-mistakes`+`lavish-axi` (finding bisection/run facade/drift gate) and the multi-armed bandit literature (Thompson Sampling, discounted bandit). A fanout-script audit confirmed consistent style (shebang/`set -uo pipefail`/`die()`/help range), no churn. The README promotes the **skills master-directory loop** from a CLI table cell into the narrative — `Why` / `Workflow entry patterns` / `Design principles` each add a line (progressive disclosure + skills settling back into the master directory: index -> dispatch -> forge -> validate -> re-index). Full pass over the README to align with the real repo: fix the `scripts/` line (2 -> 4 files: add `check-docs.sh`/`install-skill.sh`), acknowledgements add **merkyor/Lynn** (ownership) + **Anthropic `skill-creator`** (forge authoring/validate mirror), and `NOTICE` synced into the full acknowledgement set (Zleap/no-mistakes/lavish-axi/Lynn/skill-creator/bandit literature).
 
 ### Fixed
+
 - **`fanout fleet status` / `preflight` false readiness**: the old version only grep'd `health` / `state`, so `mount_state: unmounted` and `desired_state: running` (config intent != actual mount) would false-match -> false ready/GO -> dispatch stuck in an empty queue. Changed to require `^mount_state:[[:space:]]*mounted`, with unmounted / desired_state regression tests added.
 
 ## [1.0.0] - 2026-06-21
@@ -47,6 +57,7 @@ First public release — the Chinese-model multi-agent coding workflow plus its 
 ### Added
 
 **Foundation**
+
 - `backends/` — Chinese-model backends: `cc_model_launch` shared core + 9 thin launchers + `cc-model-registry.tsv` + `cc-models` dispatcher + `cc-sync` (auto-follow Claude Code + model updates) + research-prompt + install/verify/prompts.
 - `orchestration/fanout/SKILL.md` — 5-phase workflow + Phase 5 Review-Fix Loop v2 (deterministic gate first / keep-best / ≥2 confirmation passes / meta-reflect on non-convergence).
 - `orchestration/ccb/ccb.config.example` — sanitized multi-window ccb topology template.
@@ -54,6 +65,7 @@ First public release — the Chinese-model multi-agent coding workflow plus its 
 - `docs/WORKFLOW.md` — end-to-end pipeline + two run modes + maintenance layer + security boundary.
 
 **`fanout` CLI tooling layer** — unified driver `orchestration/fanout/fanout` (doctor/fleet/preflight/task/template/dispatch/cache/allocate/workspace/experience/plan/goal/summary/ccb-sync/selftest):
+
 - `fanout-doctor.sh` — environment recon + workflow recommendation.
 - `fanout-preflight.sh` — go/no-go gate (deps / ccbd / ccb.config sanity / **no-Gemini guard** / `--probe` endpoint liveness / `--config-only`).
 - `fanout-fleet.sh` + `fleet-launch.py` — bring up/check/stop the ccb fleet; strips `CLAUDE_CODE_*` (OAuth false-401) + detached tmux, with `--pty` (pty.fork) fallback. Solves "stuck-in-queue, no worker".
@@ -78,6 +90,7 @@ First public release — the Chinese-model multi-agent coding workflow plus its 
 **Engineering** — CI (`secret-scan` + `shell` + `node`), `scripts/scan-secrets.sh` + `scripts/check-shell.sh` (shared by Make/CI/pre-commit), `.gitleaks.toml`, `.shellcheckrc`, `.pre-commit-config.yaml`, `Makefile`, `.editorconfig`, `.gitattributes`, `package.json`, `SECURITY.md`, `CONTRIBUTING.md`, PR/issue templates. **14 test suites, 119 assertions; CI green.**
 
 ### Documentation
+
 - Bilingual GitHub-standard README: English `README.md` + `README_ZH.md` (badges / TOC / architecture / CLI reference / workflow / security / acknowledgements). Acknowledges openai/codex-plugin-cc (Apache-2.0) + Zleap-Agent (concepts).
 
 [Unreleased]: https://github.com/BicaMindLabs/fugue/compare/v1.0.0...HEAD

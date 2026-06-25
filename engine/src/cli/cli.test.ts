@@ -6,6 +6,11 @@ import { Writable } from 'node:stream';
 import { Cli } from 'clipanion';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { FsRunStore } from '../adapters/store/fs-run-store.js';
+import type { HarnessConfig } from '../domain/self-harness.js';
+import { EDITABLE_SURFACES } from '../domain/self-harness.js';
+import { parseSelfHarnessSpec } from '../domain/self-harness-spec.js';
+import { NodeFileSystem } from '../infra/node-file-system.js';
 import { buildCli } from './cli.js';
 
 const collector = (): { stream: Writable; text: () => string } => {
@@ -101,6 +106,142 @@ describe('fugue CLI', () => {
       const { code, out } = await run(['task', 'new', 'a task', '--priority', 'P0']);
       expect(code).toBe(0);
       expect(out).toContain('TASK-');
+    });
+  });
+
+  describe('self-harness', () => {
+    let dir: string;
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), 'fugue-self-harness-'));
+    });
+    afterEach(async () => {
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    it('template prints parseable JSON containing all editable surfaces', async () => {
+      const { code, out } = await run(['self-harness', 'template']);
+
+      expect(code).toBe(0);
+      for (const surface of EDITABLE_SURFACES) {
+        expect(out).toContain(`"${surface}"`);
+      }
+      const parsed = parseSelfHarnessSpec(out);
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok) throw new Error(parsed.error);
+      expect(parsed.value.heldIn[0]?.gate).toContain('rm -f /tmp/fugue-self-harness-held-in');
+      expect(parsed.value.heldOut[0]?.gate).toContain('rm -f /tmp/fugue-self-harness-held-out');
+    });
+
+    it('run exits 1 with a clear error for a missing spec', async () => {
+      const { code, err } = await run(['self-harness', 'run', '--spec', '/no/such/spec.json']);
+
+      expect(code).toBe(1);
+      expect(err).toContain('no self-harness spec');
+    });
+
+    it('run exits 1 for an invalid JSON spec', async () => {
+      const spec = join(dir, 'bad.json');
+      await writeFile(spec, '{ nope', 'utf8');
+
+      const { code, err } = await run(['self-harness', 'run', '--spec', spec]);
+
+      expect(code).toBe(1);
+      expect(err).toContain('invalid JSON:');
+    });
+
+    it('run reads the run store and reports same surfaces when no weaknesses are mined', async () => {
+      const runId = 'run-without-failures';
+      const state = join(dir, 'state');
+      const runs = join(state, 'runs');
+      const runStore = new FsRunStore(new NodeFileSystem(), runs);
+      await runStore.create(runId, 'dispatch');
+      await runStore.appendEvent(runId, {
+        at: 1,
+        phase: 'dispatch',
+        kind: 'dispatched',
+        detail: 'task-a -> agent',
+      });
+
+      const config: HarnessConfig = {
+        'system-prompt': 'sys',
+        'memory-sources': 'mem',
+        subagents: 'subs',
+        skills: 'skills',
+        bootstrap: 'boot',
+        execution: 'exec',
+        verification: 'verify',
+        'failure-recovery': 'recover',
+        'runtime-policy': 'policy',
+      };
+      const spec = join(dir, 'self-harness.json');
+      await writeFile(
+        spec,
+        `${JSON.stringify({
+          agent: 'unused-agent',
+          k: 1,
+          rounds: 1,
+          runId,
+          config,
+          heldIn: [],
+          heldOut: [],
+        })}\n`,
+        'utf8',
+      );
+
+      const { code, out } = await run([
+        'self-harness',
+        'run',
+        '--spec',
+        spec,
+        '--state',
+        state,
+        '--cwd',
+        dir,
+      ]);
+
+      expect(code).toBe(0);
+      expect(out).toContain('system-prompt = same');
+      expect(out).toContain('runtime-policy = same');
+      expect(out).toContain('rounds: 1, promoted: 0');
+    });
+
+    it('runs from the generated template when the source run has no weaknesses', async () => {
+      const template = await run(['self-harness', 'template']);
+      expect(template.code).toBe(0);
+
+      const parsed = parseSelfHarnessSpec(template.out);
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok) throw new Error(parsed.error);
+
+      const state = join(dir, 'state-from-template');
+      const runStore = new FsRunStore(new NodeFileSystem(), join(state, 'runs'));
+      await runStore.create(parsed.value.runId, 'dispatch');
+      await runStore.appendEvent(parsed.value.runId, {
+        at: 1,
+        phase: 'dispatch',
+        kind: 'dispatched',
+        detail: 'task-a -> agent',
+      });
+
+      const spec = join(dir, 'generated-self-harness.json');
+      await writeFile(spec, template.out, 'utf8');
+
+      const { code, out, err } = await run([
+        'self-harness',
+        'run',
+        '--spec',
+        spec,
+        '--state',
+        state,
+        '--cwd',
+        dir,
+      ]);
+
+      expect(err).toBe('');
+      expect(code).toBe(0);
+      expect(out).toContain('system-prompt = same');
+      expect(out).toContain('runtime-policy = same');
+      expect(out).toContain('rounds: 1, promoted: 0');
     });
   });
 });

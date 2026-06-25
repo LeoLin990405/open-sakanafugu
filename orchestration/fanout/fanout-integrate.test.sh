@@ -74,8 +74,9 @@ ok "integrate summary written to TASK file" 'grep -q "### Integrate" "$TF"'
 mkwt cc-owner;  echo 1 > "$W/.ccb/workspaces/cc-owner/owned1.py"
 mkwt cc-stray;  echo 1 > "$W/.ccb/workspaces/cc-stray/owned2.py"; echo 1 > "$W/.ccb/workspaces/cc-stray/sneaky.py"
 mkwt cc-forbid; echo k > "$W/.ccb/workspaces/cc-forbid/secret.env"
+mkwt cc-nested-forbid; mkdir -p "$W/.ccb/workspaces/cc-nested-forbid/src/nested"; echo k > "$W/.ccb/workspaces/cc-nested-forbid/src/nested/secret.env"
 OWN="$TMP/ownership.tsv"
-printf 'cc-owner\towned1.py\t\ncc-stray\towned2.py\t\ncc-forbid\t*\t*.env\n' > "$OWN"
+printf 'cc-owner\towned1.py\t\ncc-stray\towned2.py\t\ncc-forbid\t*\t*.env\ncc-nested-forbid\tsrc/*\t*.env\n' > "$OWN"
 
 out="$(bash "$INT" --work "$W" --agents "cc-owner" --ownership "$OWN")"; rc=$?
 ok "ownership: compliant agent integrates normally" '[ "$rc" -eq 0 ] && [ -f "$W/owned1.py" ]'
@@ -88,6 +89,10 @@ ok "ownership: out-of-bounds → owned2.py also not integrated (whole batch held
 
 out="$(bash "$INT" --work "$W" --agents "cc-forbid" --ownership "$OWN")"
 ok "ownership: forbidden glob(*.env) hit → violation" 'case "$out" in *"violation cc-forbid"*secret.env*) true;; *) false;; esac'
+
+out="$(bash "$INT" --work "$W" --agents "cc-nested-forbid" --ownership "$OWN")"; rc=$?
+ok "ownership: forbidden glob catches file inside untracked dir" '[ "$rc" -ne 0 ] && case "$out" in *"violation cc-nested-forbid"*src/nested/secret.env*) true;; *) false;; esac'
+ok "ownership: nested forbidden file did not reach main" '[ ! -f "$W/src/nested/secret.env" ]'
 
 # violation does not block the compliant: stray(still out-of-bounds) + clean2(not in list=unrestricted) together
 mkwt cc-clean2; echo 1 > "$W/.ccb/workspaces/cc-clean2/owned3.py"

@@ -14,7 +14,7 @@
 
 ## Self-check Checklist
 
-- [ ] `make ci` passes locally (scan + lint + test)
+- [ ] `make ci` passes locally (`make ci-clean` on a fresh clone)
 - [ ] **No real key entered the repo** (`ccb.config*`'s `key=` is all `<PLACEHOLDER>`)
 - [ ] If you touched the launcher, shared logic went into `cc-model-lib.sh`, not copied into a head
 - [ ] User-facing changes are recorded in the CHANGELOG

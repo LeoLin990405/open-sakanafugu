@@ -5,10 +5,10 @@ Cross-harness entry for any coding agent (**Claude Code / Codex / OpenCode** all
 ## One entry point
 
 ```
-orchestration/fanout/fanout help
+orchestration/fanout/fuguectl help
 ```
 
-Unified driver (14 subcommands): `doctor` · `fleet` · `preflight` · `task` · `template` · `dispatch` · `cache` · `allocate` · `workspace` · `experience` · `plan` · `goal` · `summary` · `ccb-sync`. Every subcommand is plain bash — callable from any shell / harness.
+Unified driver (18 subcommands): `doctor` · `fleet` · `preflight` · `task` · `template` · `dispatch` · `cache` · `integrate` · `allocate` · `skills` · `workspace` · `experience` · `plan` · `goal` · `loop` · `run` · `summary` · `ccb-sync`. Every subcommand is plain bash — callable from any shell / harness. `orchestration/fanout/fanout` remains a backward-compatible alias.
 
 ## The workflow (5 phases)
 
@@ -19,14 +19,14 @@ Plan → Dispatch → Integrate → Review → **bounded Review-Fix Loop**. Full
 The implementer backend is selected by `--harness`:
 
 ```
-fanout dispatch <target> --harness ccb|codex|opencode [--workspace ws] [--template impl --set ...]
+fuguectl dispatch <target> --harness ccb|codex|opencode [--workspace ws] [--template impl --set ...]
 ```
 
-| harness | runs | `<target>` is |
-|---|---|---|
-| `ccb` (default) | Claude Code instances — the `cc-*` Chinese-model fleet | a ccb agent (e.g. `cc-deepseek`) |
-| `codex` | `codex exec` | a Codex model (e.g. `gpt-5.5`) |
-| `opencode` | `opencode run` | `provider/model` (e.g. `doubao/doubao-code`) |
+| harness         | runs                                                   | `<target>` is                                |
+| --------------- | ------------------------------------------------------ | -------------------------------------------- |
+| `ccb` (default) | Claude Code instances — the `cc-*` Chinese-model fleet | a ccb agent (e.g. `cc-deepseek`)             |
+| `codex`         | `codex exec`                                           | a Codex model (e.g. `gpt-5.5`)               |
+| `opencode`      | `opencode run`                                         | `provider/model` (e.g. `doubao/doubao-code`) |
 
 Reviewer (`coder`) and planner are likewise harness-agnostic.
 
@@ -42,11 +42,12 @@ Reviewer (`coder`) and planner are likewise harness-agnostic.
 ## Before dispatching
 
 ```
-fanout preflight        # go/no-go gate (deps · ccbd · ccb.config sanity · no-Gemini guard)
-fanout fleet status     # is the backend fleet up? (if down → fanout fleet up)
+fuguectl preflight        # go/no-go gate (deps · ccbd · ccb.config sanity · no-Gemini guard)
+fuguectl fleet status     # is the backend fleet up? (if down → fuguectl fleet up)
 ```
+
 Never dispatch when preflight is NO-GO.
 
 ## Dev
 
-`make ci` (secret scan + shellcheck + tests, 119 assertions). See [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md).
+`make ci` (secret scan + shellcheck + tests). See [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md).

@@ -9,7 +9,7 @@ cd "$ROOT" || exit 2
 
 # Collect all bash scripts: launchers (no extension, identified by shebang) + *.sh
 mapfile -t SCRIPTS < <(
-  { ls backends/bin/*-code backends/bin/cc-models backends/bin/cc-sync orchestration/fanout/fanout 2>/dev/null
+  { ls backends/bin/*-code backends/bin/cc-models backends/bin/cc-sync orchestration/fanout/fanout orchestration/fanout/fuguectl 2>/dev/null
     find backends scripts orchestration -name '*.sh' 2>/dev/null
   } | sort -u
 )

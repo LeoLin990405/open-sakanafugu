@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 SHELL := /usr/bin/env bash
 
-.PHONY: help install install-cc install-skill verify doctor test scan lint check-docs ci
+.PHONY: help install install-cc install-skill verify doctor test test-engine test-engine-ci scan lint check-docs ci ci-clean
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | \
@@ -17,13 +17,19 @@ verify: ## Launcher self-test + cc-models doctor
 	./backends/verify.sh && cc-models doctor
 
 doctor: ## Environment recon + workflow recommendation (run on any machine)
-	bash orchestration/fanout/fanout doctor
+	bash orchestration/fanout/fuguectl doctor
 
 install-skill: ## Install as a Claude Code skill (~/.claude/skills/fanout, backs up first if present)
 	bash scripts/install-skill.sh
 
-test: ## Run cn-plugin tests (node)
+test: ## Run plugin + fuguectl/fanout tests
 	npm test
+
+test-engine: ## Run TypeScript engine checks
+	npm run test:engine
+
+test-engine-ci: ## Clean-install engine deps, then run TypeScript engine checks
+	npm run test:engine:ci
 
 scan: ## Secret-leak scan (local gate)
 	bash scripts/scan-secrets.sh
@@ -31,7 +37,9 @@ scan: ## Secret-leak scan (local gate)
 lint: ## Script syntax (bash -n) + shellcheck
 	bash scripts/check-shell.sh
 
-check-docs: ## Docs-drift gate (README subcommands/counts == actual code)
+check-docs: ## Docs-drift gate (fuguectl README + Self-Harness guide == actual code)
 	bash scripts/check-docs.sh
 
-ci: scan lint check-docs test ## Full local CI (scan + lint + check-docs + test)
+ci: scan lint check-docs test test-engine ## Full local CI using installed deps
+
+ci-clean: scan lint check-docs test test-engine-ci ## Full clean CI with engine npm ci

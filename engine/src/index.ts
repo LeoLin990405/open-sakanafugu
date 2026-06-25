@@ -110,6 +110,8 @@ export type {
   LineageEntry,
 } from './domain/self-harness.js';
 export { EDITABLE_SURFACES } from './domain/self-harness.js';
+export type { EvalCase, SelfHarnessSpec } from './domain/self-harness-spec.js';
+export { parseSelfHarnessSpec, renderSelfHarnessSpecTemplate } from './domain/self-harness-spec.js';
 export {
   acceptEdit,
   applyEdit,
@@ -169,6 +171,18 @@ export { CcbHarness } from './adapters/harness/ccb-harness.js';
 export { CodexHarness } from './adapters/harness/codex-harness.js';
 export { OpencodeHarness } from './adapters/harness/opencode-harness.js';
 export type { HarnessExecOptions } from './adapters/harness/exec-helpers.js';
+export {
+  HarnessBackedProposer,
+  type HarnessBackedProposerOptions,
+} from './adapters/self-harness/harness-proposer.js';
+export {
+  RunWeaknessMiner,
+  type RunWeaknessMinerOptions,
+} from './adapters/self-harness/run-weakness-miner.js';
+export {
+  TaskListHarnessValidator,
+  type TaskListHarnessValidatorOptions,
+} from './adapters/self-harness/task-list-validator.js';
 export { FsWorkspaceStore } from './adapters/workspace/fs-workspace-store.js';
 export { FsExperienceStore } from './adapters/experience/fs-experience-store.js';
 export { GitVcsPort } from './adapters/integrate/git-vcs.js';
@@ -191,6 +205,7 @@ export {
   type RunReport,
 } from './app/coordinator.js';
 export { wireCoordinator, type WireConfig } from './app/wire.js';
+export { wireSelfHarness, type WireSelfHarnessConfig } from './app/wire.js';
 
 // Self-Harness — the engine's self-improving-harness loop (our abstraction of arXiv 2606.09498)
 export {

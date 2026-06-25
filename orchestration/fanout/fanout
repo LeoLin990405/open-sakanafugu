@@ -24,6 +24,8 @@
 #   fanout help                this help
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLI_NAME="${FUGUE_DRIVER_NAME:-fanout}"
+print_help(){ sed -n '2,24p' "$0" | sed -E "s/^# fanout/# $CLI_NAME/; s/^#   fanout /#   $CLI_NAME /"; }
 
 sub="${1:-help}"; shift || true
 case "$sub" in
@@ -50,10 +52,10 @@ case "$sub" in
     for t in "$HERE"/*.test.sh; do
       [ -f "$t" ] || continue
       echo "── $(basename "$t") ──"
-      bash "$t" || ec=1
+      ( unset FUGUE_DRIVER_NAME; bash "$t" ) || ec=1
     done
     [ "$ec" -eq 0 ] && echo "✓ selftest all passed" || echo "✗ selftest had failures"
     exit "$ec";;
-  help|-h|--help) sed -n '2,27p' "$0";;
-  *) echo "fanout: unknown subcommand '$sub' (doctor|fleet|preflight|task|template|dispatch|cache|integrate|allocate|skills|workspace|experience|plan|goal|loop|run|summary|ccb-sync|selftest|help)" >&2; exit 2;;
+  help|-h|--help) print_help;;
+  *) echo "$CLI_NAME: unknown subcommand '$sub' (doctor|fleet|preflight|task|template|dispatch|cache|integrate|allocate|skills|workspace|experience|plan|goal|loop|run|summary|ccb-sync|selftest|help)" >&2; exit 2;;
 esac
