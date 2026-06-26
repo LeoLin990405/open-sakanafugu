@@ -2,7 +2,7 @@
 
 [![English](https://img.shields.io/badge/Language-English-555555?style=for-the-badge)](README.md) &nbsp; [![中文](https://img.shields.io/badge/%E8%AF%AD%E8%A8%80-%E4%B8%AD%E6%96%87-2ea44f?style=for-the-badge)](README.zh-CN.md)
 
-# fugue
+# Fugunano
 
 ### 免训练的多 agent 编码编排，把模型 fleet 变成可治理 loop。
 
@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-20%20%E5%A5%97%E6%B5%8B%E8%AF%95-7c3aed?style=for-the-badge" alt="20 套 fuguectl 测试" />
   <img src="https://img.shields.io/badge/assertions-263-brightgreen?style=for-the-badge" alt="263 个 fuguectl 断言" />
-  <a href="https://github.com/BicaMindLabs/open-sakanafugu/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/open-sakanafugu/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
+  <a href="https://github.com/BicaMindLabs/Fugunano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/Fugunano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
 
@@ -25,12 +25,12 @@
 </p>
 
 <p align="center">
-  <img src="docs/readme-overview-zh.svg" alt="fugue 多 agent 编码总览" width="920">
+  <img src="docs/readme-overview-zh.svg" alt="Fugunano 多 agent 编码总览" width="920">
 </p>
 
 </div>
 
-> fugue 负责规划、派发、缓存、整合、审查、修复，并让 harness 自己从失败中改进。
+> Fugunano 负责规划、派发、缓存、整合、审查、修复，并让 harness 自己从失败中改进。
 
 ## 亮点
 
@@ -48,8 +48,8 @@
 要求：macOS 或 Linux、Node.js >= 18.18、`git`、`tmux`，以及你选择使用的模型/API 凭证。推荐用 Codex 做 review。
 
 ```bash
-git clone https://github.com/BicaMindLabs/open-sakanafugu fugue
-cd fugue
+git clone https://github.com/BicaMindLabs/Fugunano fugunano
+cd fugunano
 
 make doctor       # 检查本机 CLI 和 provider readiness
 make install      # 安装模型启动器
@@ -105,7 +105,7 @@ fuguectl loop record --verdict NEEDS_FIX --round 1
 fuguectl loop decide
 ```
 
-| 阶段      | fugue 做什么                                                                  |
+| 阶段      | Fugunano 做什么                                                               |
 | --------- | ----------------------------------------------------------------------------- |
 | Plan      | 运行 preflight，创建 TASK 文件，划分 ownership，选择 worker。                 |
 | Dispatch  | 通过 `fuguectl dispatch` 发送 scoped prompts。                                |
@@ -168,10 +168,10 @@ fugue self-harness template|run
 
 ## Self-Harness
 
-Self-Harness 改进的是 harness 配置，不是底层模型。fugue 的实现是对上海人工智能实验室论文 [Self-Harness: Harnesses That Improve Themselves](https://arxiv.org/abs/2606.09498) 的 engine-native 抽象。
+Self-Harness 改进的是 harness 配置，不是底层模型。Fugunano 的实现是对上海人工智能实验室论文 [Self-Harness: Harnesses That Improve Themselves](https://arxiv.org/abs/2606.09498) 的 engine-native 抽象。
 
 <p align="center">
-  <img src="docs/readme-self-harness-zh.svg" alt="fugue Self-Harness loop" width="920">
+  <img src="docs/readme-self-harness-zh.svg" alt="Fugunano Self-Harness loop" width="920">
 </p>
 
 ```bash

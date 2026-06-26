@@ -48,7 +48,7 @@ dispatch time.
 | `workspace`   | Optional workspace/context label carried into `DispatchRequest`.                                            |
 
 The TypeScript parser is `parseAgentRegistryJson`; the starter JSON is generated
-by `renderAgentRegistryTemplate`. Both are exported from `@bicamindlabs/fugue-engine`.
+by `renderAgentRegistryTemplate`. Both are exported from `@bicamindlabs/fugunano-engine`.
 
 ## Operator Bridge
 

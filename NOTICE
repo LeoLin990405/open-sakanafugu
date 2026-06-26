@@ -1,4 +1,4 @@
-fugue
+Fugunano
 Copyright 2026 BicaMind Labs
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +35,7 @@ Attributions
 
 - The provider-runtime bridge was informed by SeemSeam/claude_codex_bridge
   (https://github.com/SeemSeam/claude_codex_bridge) as a reference system;
-  fugue's public runtime surface and implementation naming are independent.
+  Fugunano's public runtime surface and implementation naming are independent.
 
 - `fugue self-harness` is an independent engine-native abstraction of
   Shanghai Artificial Intelligence Laboratory's paper "Self-Harness:
@@ -65,6 +65,6 @@ Attributions
 - The project is named after and conceptually framed by Sakana AI's Fugu
   (https://sakana.ai/fugu/) — many agents behind one interface with a
   learned coordinator (TRINITY) and natural-language orchestration
-  (Conductor). fugue is an independent, training-free,
+  (Conductor). Fugunano is an independent, training-free,
   harness-engineered analogue inspired by that framing; it does not derive
   from or include any Sakana AI code.

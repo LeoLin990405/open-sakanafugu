@@ -1,5 +1,5 @@
 /**
- * @bicamindlabs/fugue-engine — public surface.
+ * @bicamindlabs/fugunano-engine — public surface.
  *
  * The typed multi-agent orchestration engine (ports & adapters). During the
  * bash → TS migration this barrel grows capability by capability; see

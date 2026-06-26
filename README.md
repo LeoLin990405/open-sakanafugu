@@ -2,7 +2,7 @@
 
 [![English](https://img.shields.io/badge/Language-English-2ea44f?style=for-the-badge)](README.md) &nbsp; [![中文](https://img.shields.io/badge/%E8%AF%AD%E8%A8%80-%E4%B8%AD%E6%96%87-555555?style=for-the-badge)](README.zh-CN.md)
 
-# fugue
+# Fugunano
 
 ### Governed multi-agent coding, no coordinator training required.
 
@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-20%20suites-7c3aed?style=for-the-badge" alt="20 fuguectl test suites" />
   <img src="https://img.shields.io/badge/assertions-263-brightgreen?style=for-the-badge" alt="263 fuguectl assertions" />
-  <a href="https://github.com/BicaMindLabs/open-sakanafugu/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/open-sakanafugu/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
+  <a href="https://github.com/BicaMindLabs/Fugunano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/Fugunano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
 
@@ -25,12 +25,12 @@
 </p>
 
 <p align="center">
-  <img src="docs/readme-overview-en.svg" alt="fugue governed multi-agent coding overview" width="920">
+  <img src="docs/readme-overview-en.svg" alt="Fugunano governed multi-agent coding overview" width="920">
 </p>
 
 </div>
 
-> fugue turns a model fleet into a reliable coding loop: plan, dispatch, cache,
+> Fugunano turns a model fleet into a reliable coding loop: plan, dispatch, cache,
 > integrate, review, repair, and improve the harness itself.
 
 ## Highlights
@@ -59,8 +59,8 @@ Requirements: macOS or Linux, Node.js >= 18.18, `git`, `tmux`, and the model/API
 credentials you choose to use. Codex is recommended for review.
 
 ```bash
-git clone https://github.com/BicaMindLabs/open-sakanafugu fugue
-cd fugue
+git clone https://github.com/BicaMindLabs/Fugunano fugunano
+cd fugunano
 
 make doctor       # inspect local CLIs and provider readiness
 make install      # install model launchers
@@ -123,7 +123,7 @@ fuguectl loop record --verdict NEEDS_FIX --round 1
 fuguectl loop decide
 ```
 
-| Phase     | What fugue does                                                                         |
+| Phase     | What Fugunano does                                                                      |
 | --------- | --------------------------------------------------------------------------------------- |
 | Plan      | Run preflight, create a TASK file, split ownership, and pick workers.                   |
 | Dispatch  | Send scoped prompts through `fuguectl dispatch`.                                        |
@@ -191,13 +191,13 @@ fugue self-harness template|run
 
 ## Self-Harness
 
-Self-Harness improves the harness configuration, not the base model. fugue's
+Self-Harness improves the harness configuration, not the base model. Fugunano's
 implementation is an engine-native abstraction inspired by Shanghai Artificial
 Intelligence Laboratory's paper
 [Self-Harness: Harnesses That Improve Themselves](https://arxiv.org/abs/2606.09498).
 
 <p align="center">
-  <img src="docs/readme-self-harness-en.svg" alt="Self-Harness loop in fugue" width="920">
+  <img src="docs/readme-self-harness-en.svg" alt="Self-Harness loop in Fugunano" width="920">
 </p>
 
 ```bash

@@ -1,6 +1,6 @@
-# Using fugue as an execution engine
+# Using Fugunano as an execution engine
 
-fugue is built to be **consumed by higher-level frameworks** as their multi-agent _execution layer_, while the framework on top owns the _orchestration patterns_ and UX. The first such consumer is [**CivAgent**](https://github.com/LeoLin990405/civagent) — a research framework that encodes multi-agent orchestration as 57 historical governance regimes; civagent stays the foundation/umbrella, fugue is the engine it calls.
+Fugunano is built to be **consumed by higher-level frameworks** as their multi-agent _execution layer_, while the framework on top owns the _orchestration patterns_ and UX. The first such consumer is [**CivAgent**](https://github.com/LeoLin990405/civagent) — a research framework that encodes multi-agent orchestration as 57 historical governance regimes; civagent stays the foundation/umbrella, Fugunano is the engine it calls.
 
 This doc is the **stable contract** downstream depends on.
 
@@ -19,15 +19,15 @@ All of the above are plain CLI commands on `$PATH` (install the skill or add `or
 
 ## Shared policy
 
-- **No Gemini** in the review path (both projects enforce this — civagent's `engine/models/providers.json` `_policy` matches fugue's no-Gemini guard).
+- **No Gemini** in the review path (both projects enforce this — civagent's `engine/models/providers.json` `_policy` matches Fugunano's no-Gemini guard).
 - **Keys never in either repo** — only `~/.config/cc-model-secrets.env`.
 
 ## How CivAgent consumes it
 
-CivAgent's `engine/v5/backends.mjs` already maps its backend ids to fugue's launchers (`cn:doubao → cc-doubao`, …) — so it is **already an implicit consumer**. The integration roadmap makes that dependency explicit:
+CivAgent's `engine/v5/backends.mjs` already maps its backend ids to Fugunano's launchers (`cn:doubao → cc-doubao`, …) — so it is **already an implicit consumer**. The integration roadmap makes that dependency explicit:
 
-1. **Now (foundation)** — fugue is a stable, harness-agnostic engine (`fuguectl` CLI + `AGENTS.md` + `--harness`). ✅
-2. **Next** — civagent declares fugue as a dependency (README/CREDITS + a presence check that the `cn:*` backends resolve to installed `cc-*` launchers).
+1. **Now (foundation)** — Fugunano is a stable, harness-agnostic engine (`fuguectl` CLI + `AGENTS.md` + `--harness`). ✅
+2. **Next** — civagent declares Fugunano as a dependency (README/CREDITS + a presence check that the `cn:*` backends resolve to installed `cc-*` launchers).
 3. **Future** — civagent routes implementer dispatch through `fuguectl dispatch --harness` to inherit the cache + join barrier + review-fix loop, instead of spawning `cc-*` directly. Best landed **after** civagent's in-flight `refactor/backend-arg-contract` merges (it touches the same `backends.mjs`).
 
-> Two repos, clean dependency (civagent → fugue). Not a flat merge: licenses differ (fugue Apache-2.0, civagent MIT) and civagent carries a large frontend — a documented dependency keeps both clean and reversible.
+> Two repos, clean dependency (civagent → Fugunano). Not a flat merge: licenses differ (Fugunano Apache-2.0, civagent MIT) and civagent carries a large frontend — a documented dependency keeps both clean and reversible.

@@ -1,6 +1,6 @@
 # Self-Harness
 
-Self-Harness is fugue's net-new loop for improving the harness itself, not the
+Self-Harness is Fugunano's net-new loop for improving the harness itself, not the
 model. It is our abstraction of Shanghai Artificial Intelligence Laboratory's
 paper "Self-Harness: Harnesses That Improve Themselves" (arXiv 2606.09498):
 keep the model, evaluator, and benchmark fixed; mine verifier-grounded

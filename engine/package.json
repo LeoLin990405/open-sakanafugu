@@ -1,8 +1,8 @@
 {
-  "name": "@bicamindlabs/fugue-engine",
+  "name": "@bicamindlabs/fugunano-engine",
   "version": "0.0.0",
   "private": true,
-  "description": "fugue — typed multi-agent orchestration engine (ports & adapters). Training-free, self-hostable analogue of a learned coordinator.",
+  "description": "Fugunano — typed multi-agent orchestration engine (ports & adapters). Training-free, self-hostable analogue of a learned coordinator.",
   "license": "Apache-2.0",
   "author": "BicaMind Labs",
   "type": "module",

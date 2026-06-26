@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/), versioning [SemV
 
 ### Changed
 
+- **Renamed: fugue -> Fugunano**: the project and npm packages are now `Fugunano` / `@bicamindlabs/fugunano-engine`, and the product is presented as **FuguNano** — the lightweight, training-free engineering framework in the OpenFugu direction (Fugu and OpenFugu both train a coordinator; FuguNano replaces training with composable strategies). Updated every project-name reference, badge, and hosting URL to `BicaMindLabs/Fugunano`.
 - **Node-only operator cutover**: migrated the remaining `fuguectl` selftest suites from Bash to Node `.mjs`, deleted every tracked `.sh` file plus `.shellcheckrc`, and made `fuguectl selftest` discover only `.test.mjs`. The launcher gate is now `npm run lint:launchers`: Node launchers must parse and any newly tracked shell script fails the gate. Current operator evidence: **20 test suites, 263 assertions**.
 - **README and repo front door refresh**: renamed the Chinese mirror to `README.zh-CN.md`, added for-the-badge language/runtime/CI/license metrics, refreshed the bilingual overview diagrams, and updated docs/CI/pre-commit/package scripts to describe the Node wrapper + TypeScript engine architecture instead of the retired shell migration.
 - **Runtime naming cleanup**: made `fugue-cc` the sole public provider-runtime name. The default dispatch harness is `fugue-cc`, `fuguectl runtime` is the maintenance command, provider config lives under `.fugue-cc/provider.config`, and docs/env vars now use only `FUGUE_CC_*`.

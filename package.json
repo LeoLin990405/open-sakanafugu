@@ -1,15 +1,15 @@
 {
-  "name": "fugue",
+  "name": "fugunano",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Multi-runtime agent coding workflow: fuguectl + typed engine + bounded review-fix loop",
+  "description": "Fugunano multi-runtime agent coding workflow: fuguectl + typed engine + bounded review-fix loop",
   "license": "Apache-2.0",
   "author": "BicaMind Labs",
-  "homepage": "https://github.com/BicaMindLabs/open-sakanafugu",
+  "homepage": "https://github.com/BicaMindLabs/Fugunano",
   "repository": {
     "type": "git",
-    "url": "https://github.com/BicaMindLabs/open-sakanafugu.git"
+    "url": "https://github.com/BicaMindLabs/Fugunano.git"
   },
   "engines": {
     "node": ">=18.18.0"

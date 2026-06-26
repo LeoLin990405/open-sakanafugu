@@ -4,9 +4,9 @@
   role="img"
   aria-labelledby="title desc"
 >
-  <title id="title">fugue overview</title>
+  <title id="title">Fugunano overview</title>
   <desc id="desc">
-    A polished overview of the fugue multi-agent coding workflow.
+    A polished overview of the Fugunano multi-agent coding workflow.
   </desc>
   <defs>
     <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
@@ -88,6 +88,7 @@
     </style>
   </defs>
 
+  <rect width="1120" height="640" fill="#0b1020" />
   <rect width="1120" height="640" rx="28" fill="url(#bg)" />
   <path
     d="M72 108 H1048 M72 208 H1048 M72 308 H1048 M72 408 H1048 M72 508 H1048 M172 68 V572 M372 68 V572 M572 68 V572 M772 68 V572 M972 68 V572"
@@ -104,7 +105,7 @@
     stroke="#334155"
   />
 
-  <text x="80" y="112" class="title">fugue</text>
+  <text x="80" y="112" class="title">Fugunano</text>
   <text x="80" y="148" class="tag">
     Governed multi-agent coding without training a coordinator.
   </text>

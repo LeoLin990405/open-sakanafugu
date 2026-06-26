@@ -1,10 +1,10 @@
-# fugue engine — architecture
+# Fugunano engine — architecture
 
 > Status: **design v2 + Node cutover**. This began as the target for the TypeScript rewrite; today the repo has no tracked `.sh` scripts, `fuguectl` is a Node wrapper surface, and the strict TypeScript engine is the source of truth for orchestration behavior.
 
 ## 1. Vision
 
-Sakana Fugu puts _many models behind one API_ and lets a **trained** coordinator (TRINITY / Conductor) decide who does what. fugue is the **training-free, self-hostable** analogue: many agents behind **one typed engine**, orchestrated by **composable strategies** instead of a learned 0.6B model.
+Sakana Fugu puts _many models behind one API_ and lets a **trained** coordinator (TRINITY / Conductor) decide who does what. Fugunano is the **training-free, self-hostable** analogue: many agents behind **one typed engine**, orchestrated by **composable strategies** instead of a learned 0.6B model.
 
 The rewrite makes that literally true in code. Borrowed ideas stop being ad-hoc scripts and become **first-class, swappable abstractions**. "Our own thing" is the _composition_: a Coordinator wiring ports together, any one replaceable without touching the rest.
 

@@ -1,4 +1,4 @@
-# AGENTS.md — fugue
+# AGENTS.md — Fugunano
 
 Cross-harness entry for any coding agent (**Claude Code / Codex / OpenCode** all read this file). This repo is a multi-agent coding workflow driven by a stable `fuguectl` operator surface and a typed engine registry, so the same loop runs no matter which agent or runtime you are using.
 
