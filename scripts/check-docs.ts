@@ -10,7 +10,13 @@ const readmeEn = path("README.md");
 const readmeZh = path("README.zh-CN.md");
 const overviewEn = path("docs", "readme-overview-en.svg");
 const overviewZh = path("docs", "readme-overview-zh.svg");
+const agentsDoc = path("AGENTS.md");
+const changelog = path("CHANGELOG.md");
+const workflowDoc = path("docs", "WORKFLOW.md");
+const agentRuntimeDoc = path("docs", "AGENT_RUNTIME.md");
 const fugueDir = path("orchestration", "fuguectl");
+const workflowSkill = path("orchestration", "fuguectl", "SKILL.md");
+const harnessPort = path("engine", "src", "domain", "ports", "harness.ts");
 const selfDoc = path("docs", "SELF_HARNESS.md");
 const selfDomain = path("engine", "src", "domain", "self-harness.ts");
 const selfCli = path("engine", "src", "cli", "commands", "self-harness.ts");
@@ -37,6 +43,12 @@ requireFile(
 );
 requireFile(overviewEn, `check-docs: cannot find ${overviewEn}`);
 requireFile(overviewZh, `check-docs: cannot find ${overviewZh}`);
+requireFile(agentsDoc, `check-docs: cannot find ${agentsDoc}`);
+requireFile(changelog, `check-docs: cannot find ${changelog}`);
+requireFile(workflowDoc, `check-docs: cannot find ${workflowDoc}`);
+requireFile(agentRuntimeDoc, `check-docs: cannot find ${agentRuntimeDoc}`);
+requireFile(workflowSkill, `check-docs: cannot find ${workflowSkill}`);
+requireFile(harnessPort, `check-docs: cannot find ${harnessPort}`);
 requireFile(selfDoc, `check-docs: cannot find ${selfDoc}`);
 requireFile(selfDomain, `check-docs: cannot find ${selfDomain}`);
 requireFile(selfCli, `check-docs: cannot find ${selfCli}`);
@@ -69,6 +81,12 @@ const en = text(readmeEn);
 const zh = text(readmeZh);
 const overviewEnText = text(overviewEn);
 const overviewZhText = text(overviewZh);
+const agentsText = text(agentsDoc);
+const changelogText = text(changelog);
+const workflowText = text(workflowDoc);
+const agentRuntimeText = text(agentRuntimeDoc);
+const workflowSkillText = text(workflowSkill);
+const harnessPortText = text(harnessPort);
 for (const command of subcommands) {
   const missing = [];
   if (!en.includes(`fuguectl ${command}`)) missing.push("README.md");
@@ -128,9 +146,8 @@ const countSuiteAssertions = (source) => {
     .map((match) => {
       const items = [...(match[1] ?? "").matchAll(/["'`][\s\S]*?["'`]/gu)]
         .length;
-      const loopAssertions = [
-        ...(match[2] ?? "").matchAll(/suite\.ok\s*\(/gu),
-      ].length;
+      const loopAssertions = [...(match[2] ?? "").matchAll(/suite\.ok\s*\(/gu)]
+        .length;
       return Math.max(0, items - 1) * loopAssertions;
     })
     .reduce((sum, count) => sum + count, 0);
@@ -168,6 +185,57 @@ else
     `${basename(overviewZh)}: did not find '${assertionCount} 个断言' (actual ${assertionCount}; fix the overview SVG)`,
   );
 
+const harnessBlock =
+  /export const HARNESS_NAMES\s*=\s*\[([\s\S]*?)\]\s*as const/u.exec(
+    harnessPortText,
+  )?.[1] ?? "";
+const harnesses = [...harnessBlock.matchAll(/'([^']+)'/gu)].map(
+  (match) => match[1] ?? "",
+);
+if (harnesses.length === 0)
+  die(`check-docs: parsed no harness names from ${harnessPort}`);
+
+const harnessList = harnesses.join("|");
+for (const [file, content] of [
+  [fuguectl, driver],
+  [readmeEn, en],
+  [readmeZh, zh],
+  [agentsDoc, agentsText],
+  [workflowDoc, workflowText],
+]) {
+  if (content.includes(harnessList))
+    ok(`${basename(file)}: documents harness list ${harnessList}`);
+  else no(`${basename(file)}: missing canonical harness list '${harnessList}'`);
+}
+
+for (const [file, content] of [
+  [readmeEn, en],
+  [readmeZh, zh],
+  [agentsDoc, agentsText],
+  [workflowDoc, workflowText],
+  [agentRuntimeDoc, agentRuntimeText],
+  [workflowSkill, workflowSkillText],
+  [changelog, changelogText],
+]) {
+  if (!content.includes("agy --print"))
+    ok(`${basename(file)}: no stale 'agy --print' guidance`);
+  else no(`${basename(file)}: replace stale 'agy --print' with 'agy --prompt'`);
+}
+
+for (const [file, content] of [
+  [readmeEn, en],
+  [readmeZh, zh],
+  [agentsDoc, agentsText],
+  [workflowDoc, workflowText],
+  [agentRuntimeDoc, agentRuntimeText],
+  [workflowSkill, workflowSkillText],
+  [changelog, changelogText],
+]) {
+  if (content.includes("agy --prompt"))
+    ok(`${basename(file)}: documents 'agy --prompt'`);
+  else no(`${basename(file)}: missing 'agy --prompt'`);
+}
+
 const selfCliText = text(selfCli);
 const selfCommands = [
   ...selfCliText.matchAll(/\[\['self-harness',[ \t]*'([^']+)'\]\]/gu),
@@ -200,7 +268,7 @@ for (const surface of surfaces) {
 console.log("");
 if (!failed) {
   console.log(
-    `✓ check-docs: docs and code are consistent (${String(subcommands.length)} fuguectl subcommands · ${String(testSuites)} fuguectl test suites · ${assertionCount} fuguectl assertions · ${String(selfCommands.length)} self-harness commands · ${String(surfaces.length)} self-harness surfaces)`,
+    `✓ check-docs: docs and code are consistent (${String(subcommands.length)} fuguectl subcommands · ${String(testSuites)} fuguectl test suites · ${assertionCount} fuguectl assertions · ${String(harnesses.length)} harnesses · ${String(selfCommands.length)} self-harness commands · ${String(surfaces.length)} self-harness surfaces)`,
   );
   process.exit(0);
 }

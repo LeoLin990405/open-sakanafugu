@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/), versioning [SemV
 ### Added
 
 - **TypeScript engine Self-Harness loop (iter15)**: added the spec-driven `fugue self-harness template|run` CLI plus live Self-Harness adapters — `RunWeaknessMiner` mines `failed` / `no-agent` run events into verifier-grounded clusters, `HarnessBackedProposer` asks a configured harness agent for strict JSON full-surface replacement edits, and `TaskListHarnessValidator` re-runs fixed held-in / held-out cases with shell gates. Includes a strict JSON spec parser, `wireSelfHarness`, `docs/SELF_HARNESS.md`, robust balanced-array JSON extraction, defensive failure handling for expected harness/gate/model-output failures, and engine coverage for the live adapter edge cases.
+- **Antigravity (`agy`) as a first-class harness**: added `AgyHarness` for `agy --prompt`, wired it through dispatch / plan / preflight / agent registry / docs, and made `target=default` use the current Antigravity settings while non-default targets pass through as `--model <target>`. `preflight --harness agy --target <model>` now validates against `agy models`, and the docs drift gate checks the canonical harness list plus rejects stale print-mode guidance.
 
 ### Changed
 
@@ -26,7 +27,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/), versioning [SemV
 ### Added
 
 - **`docs/INTEGRATIONS.md`**: the **stable contract** for consuming fugue as an execution engine from a higher-level framework (fuguectl CLI / `--harness` dispatch / backends / allocate / cache / fleet / preflight / review independence); CivAgent integration roadmap (two repos with clean dependencies, not a flat merge).
-- **Multi-harness adapters (the foundation for civagent dependency integration)**: `AGENTS.md` cross-harness entry point (read by Claude Code / Codex / OpenCode alike); `fuguectl dispatch --harness fugue-cc|codex|opencode` — selectable dispatch executor (`fugue-cc` = Claude Code cc-\* clones through the configured provider runtime, codex=codex exec, opencode=opencode run), where `<target>` means different things per harness; `FUGUE_CODEX`/`FUGUE_OPENCODE` can be stubbed. dispatch self-tests +3 (codex/opencode/unknown harness).
+- **Multi-harness adapters (the foundation for civagent dependency integration)**: `AGENTS.md` cross-harness entry point (read by Claude Code / Codex / OpenCode / Antigravity alike); `fuguectl dispatch --harness fugue-cc|codex|opencode|agy` — selectable dispatch executor (`fugue-cc` = Claude Code cc-\* clones through the configured provider runtime, codex=codex exec, opencode=opencode run, agy=agy --prompt), where `<target>` means different things per harness; `FUGUE_CODEX` / `FUGUE_OPENCODE` / `FUGUE_AGY` can be stubbed.
 - Architecture SVG `docs/architecture.svg`, embedded in the README (image first + the text version tucked into `<details>`).
 - GitHub repo About description + 12 topics + homepage.
 - **Phase 5 `fuguectl loop` state machine**: turns the review-fix loop from SKILL.md pseudocode into an executable tool — `record` each round -> `decide` judges the 5 exit states (DONE / CONFIRM / CONTINUE / ESCALATE_MAX / ESCALATE_NONCONV), keep-best baseline maintained automatically, exit 0/10/20 graded. +24 self-tests.
@@ -88,7 +89,7 @@ First public release — the provider-backed multi-agent coding workflow plus it
 
 **Agent Team** — `docs/AGENT_TEAM.md` (multi-model planning + hierarchical sub-agents: fugue-cc fleet vs. native Claude Code subagents) + `orchestration/agent-team/team-review.workflow.mjs` (Workflow orchestration example).
 
-**Frontend** — agy (Antigravity) as Frontend Implementer (manual or headless `agy --print`); frontend-capable implementer runtime, while review stays independent.
+**Frontend** — agy (Antigravity) as Frontend Implementer (manual, `--harness agy`, or headless `agy --prompt`); frontend-capable implementer runtime, while review stays independent.
 
 **Install** — `scripts/install-skill.ts` + `make install-skill` → install as a Claude Code Skill (`~/.claude/skills/fugunano`, backs up existing); bilingual `/fugunano` triggers.
 
