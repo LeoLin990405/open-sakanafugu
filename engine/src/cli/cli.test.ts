@@ -1773,6 +1773,7 @@ describe('fugue CLI', () => {
       expect(captured).toContain('# stub plan');
       expect(taskLog).toContain('plan → cc-a [fugue-cc] (status=started');
       expect(taskLog).toContain('plan → cc-a [fugue-cc] (status=captured');
+      expect(taskLog).toContain('output_chars=');
       expect(taskLog).toContain(`out=${join(out, 'cc-a.plan.md')}`);
     });
 
@@ -1948,6 +1949,8 @@ describe('fugue CLI', () => {
       expect(missing.out).toContain('(took ');
       expect(taskLog).toContain('plan → cc-missing [fugue-cc] (status=started');
       expect(taskLog).toContain('plan → cc-missing [fugue-cc] (status=failed');
+      expect(taskLog).toContain('error=spawn-failed');
+      expect(taskLog).toContain('rc=1');
     });
 
     it('returns non-zero when a planner produces no durable artifact', async () => {
@@ -1976,6 +1979,7 @@ describe('fugue CLI', () => {
       expect(planned.out).toContain('(took ');
       expect(taskLog).toContain('plan → cc-silent [fugue-cc] (status=started');
       expect(taskLog).toContain('plan → cc-silent [fugue-cc] (status=missing');
+      expect(taskLog).toContain('output_chars=0');
       await expect(readFile(join(out, 'cc-silent.plan.md'), 'utf8')).rejects.toThrow();
     });
 

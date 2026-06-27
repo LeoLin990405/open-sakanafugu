@@ -84,7 +84,7 @@ First public release — the provider-backed multi-agent coding workflow plus it
 - `fuguectl-allocate` + `allocation.tsv` — bench-driven task-type → model allocation.
 - `fuguectl-workspace` + `workspaces/` — per-task **context isolation** (`System + Workspace + Tools + Memory + History`), inspired by Zleap-Agent.
 - `fuguectl-experience` — **experience memory** (completed work → reusable method → sanitized → recalled into workspace context), inspired by Zleap-Agent.
-- `fuguectl-plan` — multi-model planning panel (design panel), with `--timeout-ms` / `--harness-arg` runtime controls, per-agent duration output, and optional `--task` audit lines for planner status plus artifact paths across Codex/OpenCode/AGY/fugue-cc planning.
+- `fuguectl-plan` — multi-model planning panel (design panel), with `--timeout-ms` / `--harness-arg` runtime controls, per-agent duration output, and optional `--task` audit lines for planner status, output size or error kind/exit code, plus artifact paths across Codex/OpenCode/AGY/fugue-cc planning.
 - `fuguectl-goal` — **goal mode**: declarative spec + deterministic acceptance gate.
 - `fuguectl runtime` + `launchd/com.user.fugunano-runtime-sync.plist.example` — runtime provider sync for version drift / grafting checks / daemon restart.
 

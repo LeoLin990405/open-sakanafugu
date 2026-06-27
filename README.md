@@ -166,7 +166,8 @@ entry point on the same road: use policies, ports, review gates, and harness
 improvement first, then decide whether a learned conductor is worth the cost.
 
 The planning panel prints per-agent dispatch duration and, with `--task`,
-persists planner status plus artifact paths in the TASK log. `dispatch
+persists planner status, output size or error kind/exit code, plus artifact
+paths in the TASK log. `dispatch
 --verbose` prints an obs line to stderr, and dispatches with `--task` persist
 duration / output size / optional `--out` artifact path in the TASK log, so live
 Codex/OpenCode/AGY runs leave an observable trace without contaminating model

@@ -24,7 +24,7 @@ Four roles, seven phases — fully replayable, interruptible, and auditable.
 ### Phase 0 — Open the Task (Planner)
 
 The planner writes the requirement into a task file such as `~/.claude/tasks/TASK-YYYY-MM-DD-NNN.md`: requirements / subtasks (annotated with the logical agent profile) / acceptance criteria / output files. This is the single source of intent for the whole pipeline.
-When using the planning panel, pass `fuguectl plan "<goal>" --task <file>` so planner start/completion status and artifact paths are written into the same audit trail.
+When using the planning panel, pass `fuguectl plan "<goal>" --task <file>` so planner start/completion status, output size or error kind/exit code, and artifact paths are written into the same audit trail.
 
 ### Phase 1 — Split and Assign (fuguectl)
 

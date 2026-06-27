@@ -33,6 +33,9 @@ const formatDurationMs = (ms: number): string => {
   return `${(ms / 1000).toFixed(1)}s`;
 };
 
+const failureFields = (kind: string, exitCode: number | undefined): string =>
+  `error=${kind} rc=${String(exitCode ?? 1)}`;
+
 const shanghaiTimestamp = (date = new Date()): string => {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Shanghai',
@@ -162,10 +165,13 @@ export class PlanCommand extends Command {
           : null;
         const elapsedMs = performance.now() - startedAt;
         const status = !isOk(result) ? 'failed' : (artifact ?? 'missing');
+        const detail = isOk(result)
+          ? `output_chars=${String(result.value.output.length)}`
+          : failureFields(result.error.kind, result.error.exitCode);
         await this.appendTaskLog(
           `plan → ${agent} [${this.harness}] (status=${status} took=${formatDurationMs(
             elapsedMs,
-          )} out=${outfile})`,
+          )} ${detail} out=${outfile})`,
         );
         return { agent, outfile, result, artifact, elapsedMs };
       }),
