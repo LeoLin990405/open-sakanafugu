@@ -169,9 +169,9 @@ The planning panel prints per-agent dispatch duration and, with `--task`,
 persists planner status, output size or error kind/exit code, plus artifact
 paths in the TASK log. `dispatch
 --verbose` prints an obs line to stderr, and dispatches with `--task` persist
-duration / output size / optional `--out` artifact path in the TASK log, so live
-Codex/OpenCode/AGY runs leave an observable trace without contaminating model
-stdout or durable artifacts.
+status, duration, output size, error kind on failure, and optional `--out`
+artifact path in the TASK log, so live Codex/OpenCode/AGY runs leave an
+observable trace without contaminating model stdout or durable artifacts.
 
 ## Command Surface
 

@@ -119,7 +119,7 @@ ROUND=1   # bump per round (including each Phase 5 loop round)
 "$CACHE" init "$ROUND" t1:cc-deepseek t2:cc-glm t3:agy   # task_id:agent ...
 ```
 
-**② Dispatch** each subtask. `"$FO" dispatch <agent> --harness fugue-cc --template impl --set ROLE=.. --set SCOPE=.. --set FILES=.. [--task "$F"]` wraps template-render + provider dispatch + TASK-log (templates: `impl`/`analysis`/`review`). Add `--verbose` during smoke tests or long live runs to emit timing/output-size observability to stderr without changing model stdout; when `--task` is present, duration, output-size, and optional `--out` artifact metadata are also persisted into the TASK log. The prompt must **mandate worktree edits to real files**:
+**② Dispatch** each subtask. `"$FO" dispatch <agent> --harness fugue-cc --template impl --set ROLE=.. --set SCOPE=.. --set FILES=.. [--task "$F"]` wraps template-render + provider dispatch + TASK-log (templates: `impl`/`analysis`/`review`). Add `--verbose` during smoke tests or long live runs to emit timing/output-size observability to stderr without changing model stdout; when `--task` is present, status, duration, output-size, failure kind, and optional `--out` artifact metadata are also persisted into the TASK log. The prompt must **mandate worktree edits to real files**:
 
 ```bash
 cat > /tmp/fugunano-impl-prompt.md <<'EOF'

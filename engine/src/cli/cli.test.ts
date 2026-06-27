@@ -410,6 +410,7 @@ describe('fugue CLI', () => {
       expect(called).toContain('BACKEND-ROLE');
       expect(called).toContain('SCOPE-MARK');
       expect(taskLog).toContain('dispatch → cc-deepseek');
+      expect(taskLog).toContain('status=ok');
       expect(taskLog).toContain('took=');
       expect(taskLog).toContain('output_chars=0');
       expect(ledgerLog).toContain('code\tcc-deepseek');
@@ -572,17 +573,32 @@ describe('fugue CLI', () => {
         'utf8',
       );
       await chmod(opencodeBin, 0o755);
+      const task = join(dir, 'TASK-opencode-error.md');
+      await writeFile(task, '## Execution log\n', 'utf8');
 
       const dispatched = await run(
-        args('kimi/latest', '--harness', 'opencode', '--prompt', 'review this change'),
+        args(
+          'kimi/latest',
+          '--harness',
+          'opencode',
+          '--prompt',
+          'review this change',
+          '--task',
+          task,
+        ),
       );
+      const taskLog = await readFile(task, 'utf8');
 
       expect(dispatched.code).toBe(1);
       expect(dispatched.err).toContain('ProviderModelNotFoundError');
+      expect(taskLog).toContain('dispatch → kimi/latest [opencode] (status=failed rc=1');
+      expect(taskLog).toContain('error=unavailable');
     });
 
     it('can require non-empty dispatch output before writing artifacts', async () => {
       const outFile = join(dir, 'artifacts', 'empty-review.txt');
+      const task = join(dir, 'TASK-empty-review.md');
+      await writeFile(task, '## Execution log\n', 'utf8');
 
       const dispatched = await run(
         args(
@@ -594,12 +610,17 @@ describe('fugue CLI', () => {
           '--require-output',
           '--out',
           outFile,
+          '--task',
+          task,
         ),
       );
+      const taskLog = await readFile(task, 'utf8');
 
       await expect(readFile(outFile, 'utf8')).rejects.toHaveProperty('code', 'ENOENT');
       expect(dispatched.code).toBe(1);
       expect(dispatched.err).toContain('empty dispatch output');
+      expect(taskLog).toContain('status=failed rc=1 error=empty-output');
+      expect(taskLog).toContain(`out=${outFile}`);
     });
 
     it('writes successful dispatch output to a durable artifact', async () => {
@@ -637,6 +658,7 @@ describe('fugue CLI', () => {
       expect(dispatched.code).toBe(0);
       expect(dispatched.out).toBe('VERDICT: ACCEPTED\n');
       expect(artifact).toBe('VERDICT: ACCEPTED\n');
+      expect(taskLog).toContain('status=ok rc=0');
       expect(taskLog).toContain(`out=${outFile}`);
     });
 

@@ -93,6 +93,9 @@ const formatDurationMs = (ms: number): string => {
   return `${(ms / 1000).toFixed(1)}s`;
 };
 
+const failureFields = (kind: string | undefined): string =>
+  kind === undefined ? '' : ` error=${kind}`;
+
 const parseStats = (content: string): StrategyState => {
   const state: StatEntry[] = [];
   for (const raw of content.split(/\r?\n/u)) {
@@ -241,12 +244,14 @@ export class DispatchCommand extends Command {
     const rc = isOk(result) ? result.value.exitCode : (result.error.exitCode ?? 1);
     let finalRc = rc;
     let outputChars = 0;
+    let failureKind: string | undefined = isOk(result) ? undefined : result.error.kind;
     if (isOk(result)) {
       const output = result.value.output;
       outputChars = output.length;
       if (this.requireOutput && output.trim().length === 0) {
         this.context.stderr.write('empty dispatch output (--require-output)\n');
         finalRc = 1;
+        failureKind = 'empty-output';
       } else if (this.out !== undefined) {
         try {
           await this.fs.write(this.out, output);
@@ -254,6 +259,7 @@ export class DispatchCommand extends Command {
           const message = error instanceof Error ? error.message : String(error);
           this.context.stderr.write(`failed to write --out ${this.out}: ${message}\n`);
           finalRc = 1;
+          failureKind = 'artifact-write-failed';
         }
       }
       if (output.length > 0) this.context.stdout.write(output);
@@ -271,6 +277,7 @@ export class DispatchCommand extends Command {
 
     await this.appendTaskLog(finalRc, {
       elapsedMs,
+      ...(failureKind !== undefined ? { errorKind: failureKind } : {}),
       outputChars,
       ...(this.out !== undefined ? { outputPath: this.out } : {}),
     });
@@ -381,6 +388,7 @@ export class DispatchCommand extends Command {
     rc: number,
     metrics: {
       readonly elapsedMs: number;
+      readonly errorKind?: string;
       readonly outputChars: number;
       readonly outputPath?: string;
     },
@@ -389,11 +397,12 @@ export class DispatchCommand extends Command {
     const current = await this.fs.read(this.task);
     if (current === null) return;
     const outputPath = metrics.outputPath === undefined ? '' : ` out=${metrics.outputPath}`;
+    const status = rc === 0 ? 'ok' : 'failed';
     await this.fs.write(
       this.task,
-      `${current}- [${shanghaiTimestamp()}] dispatch → ${this.target} [${this.harness}] (rc=${String(
+      `${current}- [${shanghaiTimestamp()}] dispatch → ${this.target} [${this.harness}] (status=${status} rc=${String(
         rc,
-      )} took=${formatDurationMs(metrics.elapsedMs)} output_chars=${String(
+      )}${failureFields(metrics.errorKind)} took=${formatDurationMs(metrics.elapsedMs)} output_chars=${String(
         metrics.outputChars,
       )}${outputPath})\n`,
     );
