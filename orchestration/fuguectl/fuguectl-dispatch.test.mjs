@@ -24,6 +24,9 @@ const called = join(tmp, "called");
 
 const help = run(dispatch, ["--help"]).stdout;
 suite.ok("help lists dispatch timeout", () => help.includes("--timeout-ms n"));
+suite.ok("help lists dispatch harness args", () =>
+  help.includes("--harness-arg x"),
+);
 
 writeExecutable(join(tmp, "fugue-cc"), [
   "#!/usr/bin/env node",
@@ -94,6 +97,20 @@ suite.ok("codex harness → codex exec --model <model>", () =>
 );
 suite.ok("codex harness: prompt passed as arg", () =>
   readFileSync(codexCalled, "utf8").includes("custom prompt content"),
+);
+run(dispatch, [
+  "gpt-5.5",
+  "--harness",
+  "codex",
+  "--harness-arg=-c",
+  "--harness-arg=mcp_servers={}",
+  "--prompt-file",
+  promptFile,
+]);
+suite.ok("codex harness args are preserved through wrapper", () =>
+  readFileSync(codexCalled, "utf8").includes(
+    "ARGV: exec -c mcp_servers={} --model gpt-5.5",
+  ),
 );
 
 const opencodeCalled = join(tmp, "oc.called");

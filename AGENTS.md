@@ -19,7 +19,7 @@ Plan → Dispatch → Integrate → Review → **bounded Review-Fix Loop**. Full
 The implementer backend is selected by `--harness`:
 
 ```
-fuguectl dispatch <target> --harness fugue-cc|codex|opencode [--timeout-ms n] [--workspace ws] [--template impl --set ... | --prompt-file f | --prompt text]
+fuguectl dispatch <target> --harness fugue-cc|codex|opencode [--timeout-ms n] [--harness-arg x] [--workspace ws] [--template impl --set ... | --prompt-file f | --prompt text]
 ```
 
 | harness              | runs                                                  | `<target>` is                                |

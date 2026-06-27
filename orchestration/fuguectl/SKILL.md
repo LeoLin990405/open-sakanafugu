@@ -213,6 +213,8 @@ If problems exist, output VERDICT: NEEDS FIX plus a problem list
 Be concise.
 EOF
 "$FO" dispatch gpt-5.5 --harness codex --timeout-ms 600000 --prompt-file /tmp/fugunano-review-prompt.md --task "$F"
+# If local Codex MCP/plugin startup is flaky, add:
+#   --harness-arg=-c --harness-arg=mcp_servers={}
 ```
 
 - `VERDICT: ACCEPTED` → wrap up (TASK → Status: DONE + Completed, push / deliver).

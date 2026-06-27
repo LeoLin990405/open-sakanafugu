@@ -15,7 +15,7 @@ const help = `fuguectl — fugue workflow control-plane entrypoint.
   fuguectl preflight [--harness fugue-cc|codex|opencode|all] [cfg]  pre-run go/no-go gate
   fuguectl task new|log|done   TASK file scaffold/log/finalize
   fuguectl template <n> [--set K=V]   render prompt template
-  fuguectl dispatch <agent> [--harness h] [--timeout-ms n] --template <n>|--prompt-file <f>|--prompt <text> [--task <file>]
+  fuguectl dispatch <agent> [--harness h] [--timeout-ms n] [--harness-arg x] --template <n>|--prompt-file <f>|--prompt <text> [--task <file>]
   fuguectl cache ...           result cache + join barrier
   fuguectl integrate --work <repo> --agents "a b" [--onconflict abort|skip]
   fuguectl allocate <task-type> [--top]|record|stats|reset

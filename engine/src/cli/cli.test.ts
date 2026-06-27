@@ -448,6 +448,38 @@ describe('fugue CLI', () => {
       expect(opencodeCall).toContain('custom prompt content');
     });
 
+    it('passes harness args through to lite harnesses', async () => {
+      const codexDispatch = await run(
+        args(
+          'gpt-5.5',
+          '--harness',
+          'codex',
+          '--harness-arg=-c',
+          '--harness-arg=mcp_servers={}',
+          '--prompt-file',
+          promptFile,
+        ),
+      );
+      const opencodeDispatch = await run(
+        args(
+          'doubao/doubao-code',
+          '--harness',
+          'opencode',
+          '--harness-arg=--agent',
+          '--harness-arg=review',
+          '--prompt-file',
+          promptFile,
+        ),
+      );
+      const codexCall = await readFile(codexCalled, 'utf8');
+      const opencodeCall = await readFile(opencodeCalled, 'utf8');
+
+      expect(codexDispatch.code).toBe(0);
+      expect(opencodeDispatch.code).toBe(0);
+      expect(codexCall).toContain('ARGV: exec -c mcp_servers={} --model gpt-5.5');
+      expect(opencodeCall).toContain('ARGV: run --agent review -m doubao/doubao-code');
+    });
+
     it('dispatches an inline prompt for quick smoke checks', async () => {
       const dispatched = await run(
         args('gpt-5.5', '--harness', 'codex', '--prompt', 'inline smoke prompt'),

@@ -187,6 +187,7 @@ export class DispatchCommand extends Command {
   experience = Option.String('--experience', defaultExperienceDir());
   ledger = Option.String('--ledger', defaultAllocationLedger());
   timeoutMs = Option.String('--timeout-ms', process.env.FUGUE_DISPATCH_TIMEOUT_MS ?? '0');
+  harnessArgs = Option.Array('--harness-arg', []);
 
   private readonly fs = new NodeFileSystem();
 
@@ -231,16 +232,19 @@ export class DispatchCommand extends Command {
         return new FugueCcHarness(runner, {
           bin: process.env.FUGUE_CC_BIN ?? 'fugue-cc',
           ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+          ...(this.harnessArgs.length > 0 ? { args: this.harnessArgs } : {}),
         });
       case 'codex':
         return new CodexHarness(runner, {
           bin: process.env.FUGUE_CODEX ?? 'codex',
           ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+          ...(this.harnessArgs.length > 0 ? { args: this.harnessArgs } : {}),
         });
       case 'opencode':
         return new OpencodeHarness(runner, {
           bin: process.env.FUGUE_OPENCODE ?? 'opencode',
           ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+          ...(this.harnessArgs.length > 0 ? { args: this.harnessArgs } : {}),
         });
     }
   }

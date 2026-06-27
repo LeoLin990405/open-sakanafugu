@@ -5,7 +5,7 @@ runSimpleBridge({
   argv: process.argv.slice(2),
   command: "dispatch",
   helpOnEmpty: false,
-  help: `fuguectl-dispatch <target> [--harness fugue-cc|codex|opencode] [--timeout-ms n] [--workspace <ws>] (--template <name> [--set K=V ...] | --prompt-file <f> | --prompt <text>) [--task <file>]
+  help: `fuguectl-dispatch <target> [--harness fugue-cc|codex|opencode] [--timeout-ms n] [--harness-arg x] [--workspace <ws>] (--template <name> [--set K=V ...] | --prompt-file <f> | --prompt <text>) [--task <file>]
 --task-type T  append (T, agent) into alloc ledger
 --skills a,b   inject selected skills into that agent context
 `,
