@@ -4,7 +4,7 @@ import { runSimpleBridge } from "./fuguectl-node-bridge.mjs";
 runSimpleBridge({
   argv: process.argv.slice(2),
   command: "preflight",
-  help: `fuguectl-preflight [--harness fugue-cc|codex|opencode|all] [provider config path]
+  help: `fuguectl-preflight [--harness fugue-cc|codex|opencode|all] [--model provider/model|--target provider/model] [provider config path]
 pre-run go/no-go gate for the selected dispatch harness
 `,
 });

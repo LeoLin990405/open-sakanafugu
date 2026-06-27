@@ -204,7 +204,7 @@ fugue allocate <task-type>|list|record|feed|stats|reset|decay
 fugue dispatch <target> --harness fugue-cc|codex|opencode [--timeout-ms n] [--codex-clean] [--harness-arg x] [--out <file>] [--require-output] --template <name>|--prompt-file <file>|--prompt <text>
 fugue integrate --work <repo> --agents "a b" [--ownership file] [--dry]
 fugue skills index|list|match|show|inject|validate|forge
-fugue preflight [--harness fugue-cc|codex|opencode|all] [--config-only] [provider.config]
+fugue preflight [--harness fugue-cc|codex|opencode|all] [--model provider/model|--target provider/model] [--config-only] [provider.config]
 fugue cache init|put|fail|status|barrier|collect|list|resume --cache <dir>
 fugue plan "<goal>" --harness fugue-cc|codex|opencode --out <dir> [--models m1,m2]
 fugue task new|log|done
@@ -219,6 +219,10 @@ fugue goal template|show|check
 fugue agent-registry template|validate|list|resolve
 fugue self-harness template|run
 ```
+
+For OpenCode, `preflight --target <provider/model>` checks the local
+`opencode models` registry before dispatch, so a stale or unavailable model is
+caught before the run starts.
 
 `runtime check` also compares the repo's `orchestration/fuguectl/` bundle with
 the installed workflow bundle. `runtime adapt --apply` syncs it, so local agent

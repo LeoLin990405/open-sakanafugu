@@ -59,7 +59,8 @@ Three roles, five phases. Planner orchestrates, the implementer fleet writes cod
    ```bash
    "$FO" help quickstart                         # safe first-run path
    "$FO" init --dry-run                          # local readiness, no writes
-   "$FO" preflight --harness codex                    # lite reviewer path
+     "$FO" preflight --harness codex                    # lite reviewer path
+     "$FO" preflight --harness opencode --target opencode/deepseek-v4-flash-free
    FUGUE_CC_WORK=<provider project> "$FO" preflight --harness fugue-cc   # full fleet path
    ```
 

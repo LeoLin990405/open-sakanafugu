@@ -44,6 +44,11 @@ const includesCodex = (harness: PreflightHarness): boolean =>
 const includesOpencode = (harness: PreflightHarness): boolean =>
   harness === 'opencode' || harness === 'all';
 
+const trimNonEmpty = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
+};
+
 const shellQuote = (value: string): string => `'${value.replace(/'/gu, "'\\''")}'`;
 
 const commandExists = async (runner: CommandRunner, command: string): Promise<boolean> => {
@@ -175,6 +180,8 @@ export class PreflightCommand extends Command {
   bin = Option.String('--bin', process.env.FUGUE_CC_BIN ?? 'fugue-cc');
   codexBin = Option.String('--codex-bin', process.env.FUGUE_CODEX ?? 'codex');
   opencodeBin = Option.String('--opencode-bin', process.env.FUGUE_OPENCODE ?? 'opencode');
+  model = Option.String('--model');
+  target = Option.String('--target');
   cacheScript = Option.String('--cache-script', fuguectlScript(import.meta.url, 'cache'));
 
   override async execute(): Promise<number> {
@@ -192,8 +199,14 @@ export class PreflightCommand extends Command {
     const lines = [`── parallel dispatch preflight (harness=${harness}) ──`];
     const work = this.work ?? nonEmptyEnv(process.env.FUGUE_CC_WORK);
     const checkProvider = this.configOnly || this.config !== undefined || includesFugueCc(harness);
+    const requestedModel = trimNonEmpty(this.model);
+    const requestedTarget = trimNonEmpty(this.target);
+    const modelToCheck = this.resolveRequestedModel(requestedModel, requestedTarget, lines, status);
 
     if (!this.configOnly) await this.runDependencyChecks(lines, status, runner, work, harness);
+    if (!this.configOnly && includesOpencode(harness) && modelToCheck !== undefined) {
+      await this.runOpencodeModelCheck(modelToCheck, lines, status, runner);
+    }
 
     const configPath =
       this.config ?? (work !== undefined ? joinPath(work, '.fugue-cc/provider.config') : undefined);
@@ -297,6 +310,47 @@ export class PreflightCommand extends Command {
       }
     } else if (includesFugueCc(harness)) {
       warn(lines, status, 'FUGUE_CC_WORK unset — skip provider mount check');
+    }
+  }
+
+  private resolveRequestedModel(
+    model: string | undefined,
+    target: string | undefined,
+    lines: string[],
+    status: MutableStatus,
+  ): string | undefined {
+    if (model !== undefined && target !== undefined && model !== target) {
+      fail(lines, status, `--model and --target disagree (${model} != ${target})`);
+      return undefined;
+    }
+    return model ?? target;
+  }
+
+  private async runOpencodeModelCheck(
+    model: string,
+    lines: string[],
+    status: MutableStatus,
+    runner: CommandRunner,
+  ): Promise<void> {
+    try {
+      const result = await runner.run(this.opencodeBin, ['models']);
+      if (result.code !== 0) {
+        fail(lines, status, `opencode models failed; cannot validate ${model}`);
+        return;
+      }
+      const models = new Set(
+        result.stdout
+          .split(/\r?\n/u)
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0),
+      );
+      if (models.has(model)) {
+        ok(lines, `opencode model available (${model})`);
+        return;
+      }
+      fail(lines, status, `opencode model not found (${model}); run: ${this.opencodeBin} models`);
+    } catch {
+      fail(lines, status, `opencode models failed; cannot validate ${model}`);
     }
   }
 

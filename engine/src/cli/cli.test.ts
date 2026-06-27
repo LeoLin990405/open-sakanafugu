@@ -1896,6 +1896,96 @@ describe('fugue CLI', () => {
       expect(result.out).toContain('missing-opencode');
     });
 
+    it('validates an opencode target against the local model registry', async () => {
+      const codex = join(dir, 'codex');
+      const opencode = join(dir, 'opencode');
+      await writeFile(codex, '#!/usr/bin/env bash\nexit 0\n', 'utf8');
+      await writeFile(
+        opencode,
+        [
+          '#!/usr/bin/env bash',
+          'if [ "$1" = "models" ]; then',
+          '  printf "opencode/deepseek-v4-flash-free\\nalibaba/qwen3-coder-plus\\n"',
+          '  exit 0',
+          'fi',
+          'exit 2',
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+      await chmod(codex, 0o755);
+      await chmod(opencode, 0o755);
+
+      const result = await run([
+        'preflight',
+        '--harness',
+        'opencode',
+        '--codex-bin',
+        codex,
+        '--opencode-bin',
+        opencode,
+        '--target',
+        'opencode/deepseek-v4-flash-free',
+      ]);
+
+      expect(result.code).toBe(0);
+      expect(result.out).toContain('opencode model available');
+      expect(result.out).toContain('opencode/deepseek-v4-flash-free');
+    });
+
+    it('fails opencode preflight when the requested model is not listed locally', async () => {
+      const codex = join(dir, 'codex');
+      const opencode = join(dir, 'opencode');
+      await writeFile(codex, '#!/usr/bin/env bash\nexit 0\n', 'utf8');
+      await writeFile(
+        opencode,
+        [
+          '#!/usr/bin/env bash',
+          'if [ "$1" = "models" ]; then',
+          '  printf "opencode/deepseek-v4-flash-free\\n"',
+          '  exit 0',
+          'fi',
+          'exit 2',
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+      await chmod(codex, 0o755);
+      await chmod(opencode, 0o755);
+
+      const result = await run([
+        'preflight',
+        '--harness',
+        'opencode',
+        '--codex-bin',
+        codex,
+        '--opencode-bin',
+        opencode,
+        '--model',
+        'opencode/gpt-5.1-codex-mini',
+      ]);
+
+      expect(result.code).toBe(1);
+      expect(result.out).toContain('opencode model not found');
+      expect(result.out).toContain('opencode/gpt-5.1-codex-mini');
+      expect(result.out).toContain('opencode models');
+    });
+
+    it('rejects conflicting preflight --model and --target values', async () => {
+      const result = await run([
+        'preflight',
+        '--harness',
+        'opencode',
+        '--model',
+        'opencode/deepseek-v4-flash-free',
+        '--target',
+        'opencode/other',
+      ]);
+
+      expect(result.code).toBe(1);
+      expect(result.out).toContain('--model and --target disagree');
+    });
+
     it('rejects an unknown preflight harness', async () => {
       const result = await run(['preflight', '--harness', 'gemini']);
 

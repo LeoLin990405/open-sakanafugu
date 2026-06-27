@@ -177,7 +177,7 @@ fugue allocate <task-type>|list|record|feed|stats|reset|decay
 fugue dispatch <target> --harness fugue-cc|codex|opencode [--timeout-ms n] [--codex-clean] [--harness-arg x] [--out <file>] [--require-output] --template <name>|--prompt-file <file>|--prompt <text>
 fugue integrate --work <repo> --agents "a b" [--ownership file] [--dry]
 fugue skills index|list|match|show|inject|validate|forge
-fugue preflight [--harness fugue-cc|codex|opencode|all] [--config-only] [provider.config]
+fugue preflight [--harness fugue-cc|codex|opencode|all] [--model provider/model|--target provider/model] [--config-only] [provider.config]
 fugue cache init|put|fail|status|barrier|collect|list|resume --cache <dir>
 fugue plan "<goal>" --harness fugue-cc|codex|opencode --out <dir> [--models m1,m2]
 fugue task new|log|done
@@ -192,6 +192,9 @@ fugue goal template|show|check
 fugue agent-registry template|validate|list|resolve
 fugue self-harness template|run
 ```
+
+OpenCode 场景下，`preflight --target <provider/model>` 会先检查本机
+`opencode models` registry，过期或不可用的模型会在 dispatch 前被拦住。
 
 `runtime check` 也会比较仓库里的 `orchestration/fuguectl/` bundle 和本机已安装的 workflow bundle；`runtime adapt --apply` 会同步它，避免本机 agent 指令和 helper 入口落后于仓库里的最新工作流。如果 `fugue-cc` 不可用，adapt 仍会同步 bundle，但会保留非零退出码，让自动化知道 provider restart/stamp 被跳过了。
 
