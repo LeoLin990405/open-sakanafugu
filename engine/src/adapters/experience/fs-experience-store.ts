@@ -97,6 +97,12 @@ export class FsExperienceStore implements ExperienceStore {
       });
     }
     const sourceRef = input.sourceRef === undefined ? undefined : singleLine(input.sourceRef);
+    if (sourceRef !== undefined && containsSecret(sourceRef)) {
+      return err({
+        kind: 'contains-secret',
+        detail: 'sourceRef contains a suspected key; redact first',
+      });
+    }
     const method: Method = {
       workspace: input.workspace,
       title: input.title,

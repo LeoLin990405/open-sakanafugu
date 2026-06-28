@@ -173,6 +173,8 @@ const sourceKindError = (sourceKind: string | undefined): string => {
   return `unknown --source ${rendered}; expected one of ${EXPERIENCE_SOURCE_KINDS.join(', ')}\n`;
 };
 
+const sourceRefError = (): string => '--source-ref must be a non-empty string\n';
+
 const normalizeTrustKind = (raw: string | undefined): string | undefined =>
   raw?.trim().toLowerCase();
 
@@ -201,6 +203,7 @@ export class ExperienceAddCommand extends ExperienceCommand {
   title = Option.String();
   from = Option.String('--from');
   trustKind = Option.String('--trust');
+  sourceRef = Option.String('--source-ref');
 
   override async execute(): Promise<number> {
     const trustKind = normalizeTrustKind(this.trustKind);
@@ -209,6 +212,11 @@ export class ExperienceAddCommand extends ExperienceCommand {
         this.context.stderr.write(trustKindError(trustKind));
         return 1;
       }
+    }
+    const sourceRef = this.sourceRef?.trim();
+    if (this.sourceRef !== undefined && (sourceRef === undefined || sourceRef.length === 0)) {
+      this.context.stderr.write(sourceRefError());
+      return 1;
     }
     const body =
       this.from === undefined ? await readStream(this.context.stdin) : await fs().read(this.from);
@@ -220,6 +228,7 @@ export class ExperienceAddCommand extends ExperienceCommand {
       workspace: this.workspace,
       title: this.title,
       sourceKind: 'manual',
+      ...(sourceRef === undefined ? {} : { sourceRef }),
       ...(trustKind !== undefined && isExperienceTrustKind(trustKind) ? { trustKind } : {}),
       body,
     });

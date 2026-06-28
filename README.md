@@ -207,9 +207,12 @@ bounded `--failure-cause` tag (`planning`, `context`, `retrieval`, `tooling`,
 and recall can use that tag as a first-pass filter before query ranking.
 Each record also carries lightweight provenance: `experience add` writes
 `source=manual`, while `experience learn --task <TASK.md>` writes
-`source=task:<TASK.md>`. Use `--source manual|task` when manual notes and
-task-derived memories should be routed separately; this is an operator
-routing/audit control, not a full authority or poisoning defense. Records also
+`source=task:<TASK.md>`. Imported/manual records can also carry a write-time
+origin with `experience add --source-ref <url|path|note>`, so browser notes,
+paper summaries, and model-derived imports remain origin-visible during later
+recall. Use `--source manual|task` when manual notes and task-derived memories
+should be routed separately; this is an operator routing/audit control, not a
+full authority or poisoning defense. Records also
 carry `trustKind=trusted|untrusted`: `experience add --trust untrusted` marks
 content imported from a browser, model, or other unreviewed channel, while
 operator notes and learned TASK audits default to `trusted`. Add `--explain` to
@@ -233,7 +236,8 @@ recent experience after a model, dependency, API, or workflow change.
 
 ```bash
 cat web-note.md | fuguectl experience add code "browser memory import" \
-  --trust untrusted
+  --trust untrusted \
+  --source-ref https://example.com/original-note
 
 fuguectl experience learn code "failed-query retro" \
   --task TASK.md \
@@ -262,9 +266,10 @@ This follows the same direction as Agent Workflow Memory, AgentHER, MemRL, and
 recent agent-native memory, budget-tier routing, token-economics,
 store-routing, and provenance studies: do not replay every trace. FuguNano's
 current step is deliberately modest: select by workspace, source, write-time
-trust mark, failure mode, retrieval evidence, utility threshold, freshness
-window, and an explicit recall cap; learned budget-tier routing, semantic
-conflict adjudication, and formal authority elevation are future work.
+source reference, trust mark, failure mode, retrieval evidence, utility
+threshold, freshness window, and an explicit recall cap; learned budget-tier
+routing, semantic conflict adjudication, and formal authority elevation are
+future work.
 
 ## TypeScript Engine
 
@@ -299,7 +304,7 @@ fugue plan "<goal>" --harness fugue-cc|codex|opencode|agy|lite --out <dir> [--mo
 fugue task new|log|done
 fugue template <name> --dir <templates> [--set KEY=VALUE ...]
 fugue workspace list|show|model|context [context: --experience-source manual|task --experience-limit n --experience-trust trusted|all --experience-max-age-days n]
-fugue experience add|list|show --store <dir> [add: --trust trusted|untrusted]
+fugue experience add|list|show --store <dir> [add: --trust trusted|untrusted --source-ref ref]
 fugue experience learn --store <dir> [--failure-cause cause]
 fugue experience recall --store <dir> [--failure-cause cause] [--source manual|task] [--trust trusted|untrusted|all] [--min-score n] [--max-age-days n] [--explain]
 fugue summary <round> --cache <dir> [--task <file>]

@@ -134,6 +134,16 @@ describe('FsExperienceStore', () => {
     expect(isErr(result) && result.error.kind).toBe('contains-secret');
   });
 
+  it('rejects a source reference containing a suspected key', async () => {
+    const result = await make(fakeClock(0)).add({
+      workspace: 'code',
+      title: 'leaky source ref',
+      sourceRef: `https://example.test/?token=sk-${'abcdefghijklmnopqrstuvwxyz'}`,
+      body: 'safe body',
+    });
+    expect(isErr(result) && result.error.kind).toBe('contains-secret');
+  });
+
   it('rejects an empty body', async () => {
     const result = await make(fakeClock(0)).add({ workspace: 'code', title: 't', body: '' });
     expect(isErr(result) && result.error.kind).toBe('empty-body');

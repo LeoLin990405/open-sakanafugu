@@ -171,7 +171,7 @@ stdout 或 durable artifact。`task new` 使用独占创建避免并发 operator
 ## Experience Memory
 
 FuguNano 现在把 memory 当成一个小型的 write-manage-read loop，而不是把日志原样塞回上下文。完成的 TASK 可以蒸馏成 reusable method；终态失败或 blocked 的 TASK 默认仍会被拒绝，只有 operator 明确提供 `--allow-failure --lesson` 时才会作为“重标注失败经验”进入 memory。重标注失败还可以携带受控的 `--failure-cause` 标签（`planning`、`context`、`retrieval`、`tooling`、`implementation`、`verification`、`integration`、`runtime`、`policy`、`other`），recall 时可以先按失败原因过滤，再做 query ranking。
-每条记录也会带轻量 provenance：`experience add` 写成 `source=manual`，`experience learn --task <TASK.md>` 写成 `source=task:<TASK.md>`。需要把手写经验和 TASK 蒸馏经验分开路由时，用 `--source manual|task`；这是 operator 侧的路由/审计控制，不是完整 authority。记录还会带 `trustKind=trusted|untrusted`：从浏览器、模型输出或其它未经复核通道导入的内容可以用 `experience add --trust untrusted` 标记；operator 手写经验和 TASK 审计学习默认是 `trusted`。需要审计“为什么选中这条经验”时，加 `--explain`；输出会给出分数、命中的 query 词、存储的 failure cause、当前启用的 cause filter、source filter、trust filter、这条经验的来源和 stored trust。
+每条记录也会带轻量 provenance：`experience add` 写成 `source=manual`，`experience learn --task <TASK.md>` 写成 `source=task:<TASK.md>`。导入/手写记录还可以在写入时加 `experience add --source-ref <url|path|note>`，让浏览器笔记、论文摘要、模型输出导入在之后 recall 时仍然看得到原始来源。需要把手写经验和 TASK 蒸馏经验分开路由时，用 `--source manual|task`；这是 operator 侧的路由/审计控制，不是完整 authority。记录还会带 `trustKind=trusted|untrusted`：从浏览器、模型输出或其它未经复核通道导入的内容可以用 `experience add --trust untrusted` 标记；operator 手写经验和 TASK 审计学习默认是 `trusted`。需要审计“为什么选中这条经验”时，加 `--explain`；输出会给出分数、命中的 query 词、存储的 failure cause、当前启用的 cause filter、source filter、trust filter、这条经验的来源和 stored trust。
 需要更保守时，可以在带 query 的手动 recall 上加 `--min-score <n>`；低于这个分数的弱匹配会从本次 recall 结果里被丢掉。如果模型、依赖、API 或工作流刚刚升级，可以在本次手动 recall 上加 `--max-age-days <n>`；旧记录仍然保留在磁盘上，但检索会忽略超出 freshness window 的经验，`--explain` 也会打印当前启用的 age gate。
 自动注入 Memory 时，可以给 `workspace context` 或 `dispatch --workspace`
 加 `--experience-source manual|task`；它会在 query ranking 和 prompt
@@ -179,7 +179,8 @@ assembly 之前套用同一条来源路由。需要更小 prompt 预算时，在
 
 ```bash
 cat web-note.md | fuguectl experience add code "browser memory import" \
-  --trust untrusted
+  --trust untrusted \
+  --source-ref https://example.com/original-note
 
 fuguectl experience learn code "failed-query retro" \
   --task TASK.md \
@@ -204,7 +205,7 @@ fuguectl workspace context code \
   --task "fix dispatch output"
 ```
 
-这个方向借鉴的是 Agent Workflow Memory、AgentHER、MemRL、agent-native memory、stale/evolving memory、budget-tier routing、token economics、store routing、workflow provenance 与 memory poisoning 研究里的共同结论：不要回放所有 trace。FuguNano 当前这一步刻意保持朴素：按 workspace、来源、写入时 trust 标记、失败模式、检索证据、效用门槛、freshness window 和显式 recall cap 来选择；学习式 budget-tier routing、语义冲突裁决与形式化 authority elevation 是后续方向。
+这个方向借鉴的是 Agent Workflow Memory、AgentHER、MemRL、agent-native memory、stale/evolving memory、budget-tier routing、token economics、store routing、workflow provenance 与 memory poisoning 研究里的共同结论：不要回放所有 trace。FuguNano 当前这一步刻意保持朴素：按 workspace、来源、写入时 source ref、trust 标记、失败模式、检索证据、效用门槛、freshness window 和显式 recall cap 来选择；学习式 budget-tier routing、语义冲突裁决与形式化 authority elevation 是后续方向。
 
 ## TypeScript Engine
 
@@ -235,7 +236,7 @@ fugue plan "<goal>" --harness fugue-cc|codex|opencode|agy|lite --out <dir> [--mo
 fugue task new|log|done
 fugue template <name> --dir <templates> [--set KEY=VALUE ...]
 fugue workspace list|show|model|context [context: --experience-source manual|task --experience-limit n --experience-trust trusted|all --experience-max-age-days n]
-fugue experience add|list|show --store <dir> [add: --trust trusted|untrusted]
+fugue experience add|list|show --store <dir> [add: --trust trusted|untrusted --source-ref ref]
 fugue experience learn --store <dir> [--failure-cause cause]
 fugue experience recall --store <dir> [--failure-cause cause] [--source manual|task] [--trust trusted|untrusted|all] [--min-score n] [--max-age-days n] [--explain]
 fugue summary <round> --cache <dir> [--task <file>]

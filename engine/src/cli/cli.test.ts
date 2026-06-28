@@ -1634,6 +1634,72 @@ describe('fugue CLI', () => {
       expect(rejected.err).toContain('suspected key');
     });
 
+    it('adds imported experience with a source reference and exposes it in recall', async () => {
+      const add = await run(
+        [
+          'experience',
+          'add',
+          '--store',
+          store,
+          'code',
+          'browser note',
+          '--trust',
+          'untrusted',
+          '--source-ref',
+          'https://example.test/research-note',
+        ],
+        {
+          stdin: Readable.from(['Imported browser note about dispatch provenance.']),
+        },
+      );
+      const show = await run(['experience', 'show', '--store', store, 'code', 'browser-note']);
+      const recall = await run([
+        'experience',
+        'recall',
+        '--store',
+        store,
+        'code',
+        '--query',
+        'dispatch provenance',
+        '--trust',
+        'untrusted',
+        '--explain',
+      ]);
+      const blankRef = await run(
+        ['experience', 'add', '--store', store, 'code', 'blank ref', '--source-ref', '   '],
+        {
+          stdin: Readable.from(['blank ref body']),
+        },
+      );
+      const secretRef = await run(
+        [
+          'experience',
+          'add',
+          '--store',
+          store,
+          'code',
+          'secret ref',
+          '--source-ref',
+          `https://example.test/?token=sk-${'abcdefghijklmnopqrstuvwxyz'}`,
+        ],
+        {
+          stdin: Readable.from(['safe body']),
+        },
+      );
+
+      expect(add.code).toBe(0);
+      expect(show.out).toContain('sourceKind: manual');
+      expect(show.out).toContain('sourceRef: https://example.test/research-note');
+      expect(show.out).toContain('trustKind: untrusted');
+      expect(recall.out).toContain('source=manual:https://example.test/research-note');
+      expect(recall.out).toContain('trust=untrusted');
+      expect(recall.out).toContain('[experience] browser note');
+      expect(blankRef.code).toBe(1);
+      expect(blankRef.err).toContain('--source-ref must be a non-empty string');
+      expect(secretRef.code).toBe(1);
+      expect(secretRef.err).toContain('sourceRef contains a suspected key');
+    });
+
     it('learns a reusable experience from a completed task audit', async () => {
       const task = join(dir, 'TASK.md');
       await writeFile(
