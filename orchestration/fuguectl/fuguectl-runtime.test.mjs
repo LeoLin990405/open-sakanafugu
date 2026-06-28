@@ -113,6 +113,9 @@ suite.ok("check reports version drift (none → v9.9.9)", () =>
 suite.ok("help lists strict workflow drift gate", () =>
   run(runtime, ["--help"]).stdout.includes("check [--strict]"),
 );
+suite.ok("help lists alias workflow skill option", () =>
+  run(runtime, ["--help"]).stdout.includes("--alias-skill"),
+);
 suite.ok("check: grafting api_shortcuts.py present", () =>
   out.includes("grafting api_shortcuts.py present"),
 );
@@ -176,12 +179,14 @@ run(runtime, [
   "--strict",
   "--skill",
   join(tmp, "installed", "SKILL.md"),
+  "--alias-skill",
+  join(tmp, "legacy", "SKILL.md"),
   "--repo-skill",
   join(tmp, "repo", "SKILL.md"),
 ]);
 suite.ok("wrapper forwards workflow skill options", () =>
   readFileSync(calls, "utf8").includes(
-    `runtime check --strict --skill ${join(tmp, "installed", "SKILL.md")} --repo-skill ${join(tmp, "repo", "SKILL.md")}\n`,
+    `runtime check --strict --skill ${join(tmp, "installed", "SKILL.md")} --alias-skill ${join(tmp, "legacy", "SKILL.md")} --repo-skill ${join(tmp, "repo", "SKILL.md")}\n`,
   ),
 );
 

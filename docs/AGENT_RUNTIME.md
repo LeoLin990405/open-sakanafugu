@@ -86,9 +86,12 @@ for typed routing and coordinator behavior. The `agents`, `task`, `template`,
 `doctor`, and `goal` operator wrappers delegate to the built engine CLI at
 `engine/dist/cli/main.js`; set `FUGUE_ENGINE_CLI` to override that path.
 
-Use `fuguectl runtime check --strict --skill <installed SKILL.md> --repo-skill <repo SKILL.md>`
+Use `fuguectl runtime check --strict --skill <installed SKILL.md> --alias-skill <legacy SKILL.md> --repo-skill <repo SKILL.md>`
 when automation needs installed workflow bundle drift to fail the gate instead
-of remaining report-only.
+of remaining report-only. The default canonical install is
+`~/.claude/skills/fugunano/SKILL.md`; runtime sync also checks the legacy
+`~/.claude/skills/fugue/SKILL.md` alias unless the primary skill path is
+explicitly overridden.
 
 ## Dispatch Semantics
 

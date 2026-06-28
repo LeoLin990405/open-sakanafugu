@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Runtime-Node%20%E2%89%A518.18-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js >= 18.18" />
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-25%20%E5%A5%97%E6%B5%8B%E8%AF%95-7c3aed?style=for-the-badge" alt="25 套 fuguectl 测试" />
-  <img src="https://img.shields.io/badge/assertions-333-brightgreen?style=for-the-badge" alt="333 个 fuguectl 断言" />
+  <img src="https://img.shields.io/badge/assertions-335-brightgreen?style=for-the-badge" alt="335 个 fuguectl 断言" />
   <a href="https://github.com/BicaMindLabs/FuguNano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/FuguNano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
@@ -197,8 +197,8 @@ fugue template <name> --dir <templates> [--set KEY=VALUE ...]
 fugue workspace list|show|model|context
 fugue experience add|list|recall|show --store <dir>
 fugue summary <round> --cache <dir> [--task <file>]
-fugue runtime check [--strict] --state <dir> [--skill <installed SKILL.md>] [--repo-skill <repo SKILL.md>]
-fugue runtime adapt --state <dir> [--skill <installed SKILL.md>] [--repo-skill <repo SKILL.md>]
+fugue runtime check [--strict] --state <dir> [--skill <installed SKILL.md>] [--alias-skill <legacy SKILL.md>] [--repo-skill <repo SKILL.md>]
+fugue runtime adapt --state <dir> [--skill <installed SKILL.md>] [--alias-skill <legacy SKILL.md>] [--repo-skill <repo SKILL.md>]
 fugue run set|round|status|next|clear
 fugue loop init|record|decide|next|status
 fugue goal template|show|check
@@ -219,7 +219,7 @@ Antigravity 场景下，`--harness agy` 会走 `agy --prompt`；target 为
 
 `runtime check` 也会比较仓库里的 `orchestration/fuguectl/` bundle 和本机已安装的 workflow bundle；自动化需要把安装 skill 漂移视为失败时，加 `--strict`：
 `fuguectl runtime check --strict --skill ~/.claude/skills/fugunano/SKILL.md --repo-skill orchestration/fuguectl/SKILL.md`。
-`runtime adapt --apply` 会同步它，避免本机 agent 指令和 helper 入口落后于仓库里的最新工作流。如果 `fugue-cc` 不可用，adapt 仍会同步 bundle，但会保留非零退出码，让自动化知道 provider restart/stamp 被跳过了。
+默认情况下，当主目标是 canonical `fugunano` skill 时，runtime sync 也会检查 legacy `~/.claude/skills/fugue` alias；迁移期可以用 `--alias-skill` 显式增加别名。`runtime adapt --apply` 会同步所有配置的 skill 目标，避免本机 agent 指令和 helper 入口落后于仓库里的最新工作流。如果 `fugue-cc` 不可用，adapt 仍会同步 bundle，但会保留非零退出码，让自动化知道 provider restart/stamp 被跳过了。
 
 ## Self-Harness
 

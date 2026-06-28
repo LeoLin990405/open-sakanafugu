@@ -10,7 +10,7 @@ runSubcommandBridge({
 check [--strict] print current/last provider version + workflow bundle drift; --strict exits non-zero on bundle drift
 adapt [--apply]  verify grafting, sync workflow bundle, optionally restart daemon, preflight, record version
 
-Options: --strict --skill <installed SKILL.md> --repo-skill <repo SKILL.md>
+Options: --strict --skill <installed SKILL.md> --alias-skill <legacy SKILL.md> --repo-skill <repo SKILL.md>
 `,
   unknown: (subcommand) =>
     `fuguectl-runtime: unknown subcommand '${subcommand}' (check|adapt)`,

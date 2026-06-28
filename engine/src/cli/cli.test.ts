@@ -2932,6 +2932,73 @@ describe('fugue CLI', () => {
       expect(killCalls).toContain('/work');
     });
 
+    it('checks and syncs alias workflow skill targets', async () => {
+      const aliasDir = join(dir, 'legacy-skill');
+      const aliasSkill = join(aliasDir, 'SKILL.md');
+      await mkdir(aliasDir, { recursive: true });
+      await writeFile(installedSkill, 'repo workflow skill\n', 'utf8');
+      await writeFile(join(dir, 'installed-skill', 'fuguectl'), '#!/usr/bin/env node\n', 'utf8');
+      await writeFile(join(dir, 'installed-skill', 'fuguectl-runtime'), 'repo helper\n', 'utf8');
+      await writeFile(
+        join(dir, 'installed-skill', '.fugunano-repo-root'),
+        `${dirname(repoSkill)}\n`,
+        'utf8',
+      );
+      await rm(join(dir, 'installed-skill', 'fuguectl-cache.sh'));
+      await rm(join(dir, 'installed-skill', 'fuguectl-e2e.test.sh'));
+      await writeFile(aliasSkill, 'legacy workflow skill\n', 'utf8');
+      await writeFile(join(aliasDir, 'fuguectl'), '#!/usr/bin/env bash\n', 'utf8');
+
+      const check = await run([
+        'runtime',
+        'check',
+        '--bin',
+        bin,
+        '--state',
+        state,
+        '--install',
+        install,
+        '--alias-skill',
+        aliasSkill,
+        '--strict',
+      ]);
+      const apply = await run([
+        'runtime',
+        'adapt',
+        '--bin',
+        bin,
+        '--state',
+        state,
+        '--install',
+        install,
+        '--alias-skill',
+        aliasSkill,
+        '--apply',
+      ]);
+      const check2 = await run([
+        'runtime',
+        'check',
+        '--bin',
+        bin,
+        '--state',
+        state,
+        '--install',
+        install,
+        '--alias-skill',
+        aliasSkill,
+        '--strict',
+      ]);
+
+      expect(check.code).toBe(1);
+      expect(check.out).toContain(`workflow bundle up-to-date (${dirname(installedSkill)})`);
+      expect(check.out).toContain(`workflow bundle drift (${aliasDir};`);
+      expect(apply.out).toContain(`synced workflow bundle (${dirname(repoSkill)} → ${aliasDir})`);
+      expect(await readFile(aliasSkill, 'utf8')).toBe('repo workflow skill\n');
+      expect(await readFile(join(aliasDir, 'fuguectl-runtime'), 'utf8')).toBe('repo helper\n');
+      expect(check2.code).toBe(0);
+      expect(check2.out).toContain(`workflow bundle up-to-date (${aliasDir})`);
+    });
+
     it('detects and refreshes non-entrypoint workflow bundle files', async () => {
       await writeFile(installedSkill, 'repo workflow skill\n', 'utf8');
       await writeFile(join(dir, 'installed-skill', 'fuguectl'), '#!/usr/bin/env node\n', 'utf8');

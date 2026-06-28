@@ -1,6 +1,13 @@
 import { chmod, cp, readFile as readNodeFile, readdir, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { dirname, join as joinPath, relative, resolve, sep as pathSeparator } from 'node:path';
+import {
+  delimiter as pathDelimiter,
+  dirname,
+  join as joinPath,
+  relative,
+  resolve,
+  sep as pathSeparator,
+} from 'node:path';
 
 import { Command, Option } from 'clipanion';
 
@@ -27,11 +34,34 @@ const defaultRepoSkillPath = (): string =>
   nonEmptyEnv(process.env.FUGUE_REPO_SKILL) ??
   fuguectlFile(import.meta.url, 'SKILL.md');
 
-const defaultInstalledSkillPath = (): string =>
+const canonicalInstalledSkillPath = (): string =>
+  joinPath(homedir(), '.claude', 'skills', 'fugunano', 'SKILL.md');
+
+const legacyInstalledSkillPath = (): string =>
+  joinPath(homedir(), '.claude', 'skills', 'fugue', 'SKILL.md');
+
+const envInstalledSkillPath = (): string | undefined =>
   nonEmptyEnv(process.env.FUGUNANO_SKILL) ??
   nonEmptyEnv(process.env.FUGUE_WORKFLOW_SKILL) ??
-  nonEmptyEnv(process.env.FUGUE_SKILL) ??
-  joinPath(homedir(), '.claude', 'skills', 'fugunano', 'SKILL.md');
+  nonEmptyEnv(process.env.FUGUE_SKILL);
+
+const defaultInstalledSkillPath = (): string =>
+  envInstalledSkillPath() ?? canonicalInstalledSkillPath();
+
+const splitPathList = (value: string): string[] =>
+  value
+    .split(pathDelimiter)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+
+const defaultAliasSkillPaths = (): string[] => {
+  const configured = nonEmptyEnv(process.env.FUGUNANO_ALIAS_SKILLS);
+  if (configured !== undefined) return splitPathList(configured);
+  const primary = envInstalledSkillPath() ?? canonicalInstalledSkillPath();
+  return resolve(primary) === resolve(canonicalInstalledSkillPath())
+    ? [legacyInstalledSkillPath()]
+    : [];
+};
 
 const providerOutput = async (runner: CommandRunner, bin: string): Promise<string> => {
   try {
@@ -266,6 +296,53 @@ const workflowSkillCheckLinesForStatus = (
   ];
 };
 
+const uniqueSkillTargets = (primary: string, aliases: readonly string[]): readonly string[] => {
+  const seen = new Set<string>();
+  const targets: string[] = [];
+  for (const target of [primary, ...aliases]) {
+    const key = resolve(target);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    targets.push(target);
+  }
+  return targets;
+};
+
+const workflowSkillStatuses = async (
+  fileSystem: FileSystem,
+  repoSkill: string,
+  primarySkill: string,
+  aliasSkills: readonly string[],
+): Promise<readonly WorkflowSkillStatus[]> =>
+  Promise.all(
+    uniqueSkillTargets(primarySkill, aliasSkills).map((target) =>
+      workflowSkillStatus(fileSystem, repoSkill, target),
+    ),
+  );
+
+const workflowSkillCheckLinesForStatuses = (
+  statuses: readonly WorkflowSkillStatus[],
+  repoSkill: string,
+  driverName: string,
+): readonly string[] =>
+  statuses.flatMap((status) =>
+    workflowSkillCheckLinesForStatus(status, repoSkill, status.installedSkill, driverName),
+  );
+
+const workflowBundlesAdaptLines = async (
+  fileSystem: FileSystem,
+  repoSkill: string,
+  primarySkill: string,
+  aliasSkills: readonly string[],
+  apply: boolean,
+): Promise<readonly string[]> => {
+  const targets = uniqueSkillTargets(primarySkill, aliasSkills);
+  const lines = await Promise.all(
+    targets.map((target) => workflowBundleAdaptLines(fileSystem, repoSkill, target, apply)),
+  );
+  return lines.flat();
+};
+
 const workflowBundleAdaptLines = async (
   fileSystem: FileSystem,
   repoSkill: string,
@@ -298,6 +375,7 @@ abstract class RuntimeCommand extends Command {
   driverName = Option.String('--driver-name', process.env.FUGUE_DRIVER_NAME ?? 'fuguectl');
   repoSkill = Option.String('--repo-skill', defaultRepoSkillPath());
   skill = Option.String('--skill', defaultInstalledSkillPath());
+  aliasSkills = Option.Array('--alias-skill', defaultAliasSkillPaths());
 
   protected installOverride(): string | undefined {
     return this.install ?? nonEmptyEnv(process.env.FUGUE_CC_INSTALL);
@@ -322,14 +400,19 @@ export class RuntimeCheckCommand extends RuntimeCommand {
     const output = await providerOutput(runner, this.bin);
     const current = parseProviderVersion(output);
     const last = (await fileSystem.read(stampPath(this.state)))?.trim() ?? '(none)';
-    const workflowStatus = await workflowSkillStatus(fileSystem, this.repoSkill, this.skill);
-    const workflowLines = workflowSkillCheckLinesForStatus(
-      workflowStatus,
+    const workflowStatuses = await workflowSkillStatuses(
+      fileSystem,
       this.repoSkill,
       this.skill,
+      this.aliasSkills,
+    );
+    const workflowLines = workflowSkillCheckLinesForStatuses(
+      workflowStatuses,
+      this.repoSkill,
       this.driverName,
     );
-    const strictExitCode = this.strict && !workflowStatus.upToDate ? 1 : 0;
+    const strictExitCode =
+      this.strict && workflowStatuses.some((status) => !status.upToDate) ? 1 : 0;
     const lines = [
       `fugue-cc provider current: ${current.length > 0 ? current : 'unknown'}   last recorded: ${last}`,
     ];
@@ -386,7 +469,13 @@ export class RuntimeAdaptCommand extends RuntimeCommand {
         '  ⚠ cannot get fugue-cc provider version — skipped provider restart and version stamp',
       );
       lines.push(
-        ...(await workflowBundleAdaptLines(fileSystem, this.repoSkill, this.skill, this.apply)),
+        ...(await workflowBundlesAdaptLines(
+          fileSystem,
+          this.repoSkill,
+          this.skill,
+          this.aliasSkills,
+          this.apply,
+        )),
       );
       this.context.stdout.write(`${lines.join('\n')}\n`);
       return 2;
@@ -402,7 +491,13 @@ export class RuntimeAdaptCommand extends RuntimeCommand {
     }
 
     lines.push(
-      ...(await workflowBundleAdaptLines(fileSystem, this.repoSkill, this.skill, this.apply)),
+      ...(await workflowBundlesAdaptLines(
+        fileSystem,
+        this.repoSkill,
+        this.skill,
+        this.aliasSkills,
+        this.apply,
+      )),
     );
 
     const work = this.work ?? nonEmptyEnv(process.env.FUGUE_CC_WORK);

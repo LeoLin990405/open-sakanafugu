@@ -47,6 +47,9 @@ suite.ok("help lists runtime entrypoint", () =>
 suite.ok("help lists runtime strict gate", () =>
   helpOut.includes("runtime check [--strict]"),
 );
+suite.ok("help lists runtime alias skill option", () =>
+  helpOut.includes("--alias-skill <legacy SKILL.md>"),
+);
 suite.ok("help lists smoke entrypoint", () =>
   helpOut.includes("fuguectl smoke"),
 );

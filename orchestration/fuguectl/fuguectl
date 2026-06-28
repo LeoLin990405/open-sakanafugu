@@ -31,7 +31,7 @@ const help = `fuguectl — fugue workflow control-plane entrypoint.
   fuguectl run set|round|status|next|clear
   fuguectl summary <round> [--task <file>]
   fuguectl self-harness template|run  harness self-improvement loop
-  fuguectl runtime check [--strict]|adapt [--apply] [--skill <installed SKILL.md>] [--repo-skill <repo SKILL.md>]
+  fuguectl runtime check [--strict]|adapt [--apply] [--skill <installed SKILL.md>] [--alias-skill <legacy SKILL.md>] [--repo-skill <repo SKILL.md>]
   fuguectl selftest            run all *.test.mjs
   fuguectl help [quickstart]   this help`;
 
