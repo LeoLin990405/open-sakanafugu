@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Runtime-Node%20%E2%89%A518.18-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js >= 18.18" />
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-23%20%E5%A5%97%E6%B5%8B%E8%AF%95-7c3aed?style=for-the-badge" alt="23 套 fuguectl 测试" />
-  <img src="https://img.shields.io/badge/assertions-311-brightgreen?style=for-the-badge" alt="311 个 fuguectl 断言" />
+  <img src="https://img.shields.io/badge/assertions-313-brightgreen?style=for-the-badge" alt="313 个 fuguectl 断言" />
   <a href="https://github.com/BicaMindLabs/FuguNano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/FuguNano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
@@ -155,7 +155,7 @@ stdout 或 durable artifact。`task new` 使用独占创建避免并发 operator
 
 ## 命令面
 
-`orchestration/fuguectl/fuguectl` 是生产操作入口。当前有 21 个子命令和 23 套测试。
+`orchestration/fuguectl/fuguectl` 是生产操作入口。当前有 22 个子命令和 23 套测试。
 
 | 区域                   | 命令                                                                                                                                                                                                  |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

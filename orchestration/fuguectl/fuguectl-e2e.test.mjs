@@ -18,6 +18,13 @@ const dispatch = join(here, "fuguectl-dispatch");
 const summary = join(here, "fuguectl-summary");
 const allocate = join(here, "fuguectl-allocate");
 const tmp = makeTempDir();
+const fuguectlSource = readFileSync(fuguectl, "utf8");
+const routedCommands = [
+  ...fuguectlSource.matchAll(/\["([^"]+)",\s*"[^"]+"\]/gu),
+]
+  .map((match) => match[1])
+  .filter((command) => command !== "round-summary");
+const publicCommands = [...routedCommands, "selftest"].sort();
 
 process.env.FUGUE_CACHE = join(tmp, "cache");
 writeExecutable(join(tmp, "fugue-cc"), [
@@ -97,6 +104,12 @@ suite.ok("unknown help topic suggests quickstart", () =>
 const unknown = run(fuguectl, ["nope"]);
 suite.ok("unknown command suggests help", () =>
   unknown.stderr.includes("fuguectl help"),
+);
+suite.ok("help lists every public subcommand", () =>
+  publicCommands.every((command) => helpOut.includes(`fuguectl ${command}`)),
+);
+suite.ok("unknown command mentions every public subcommand", () =>
+  publicCommands.every((command) => unknown.stderr.includes(command)),
 );
 const workspaceOut = run(fuguectl, ["workspace", "list"]).stdout;
 suite.ok("fuguectl dispatches commands", () => /^  code/mu.test(workspaceOut));

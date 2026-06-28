@@ -74,6 +74,62 @@ describe('fugue CLI', () => {
     expect(out).toContain('backends_ready=');
   });
 
+  it('counts launcher alternate API keys as configured in doctor output', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'fugue-doctor-path-'));
+    const originalEnv = {
+      PATH: process.env.PATH,
+      BIGMODEL_API_KEY: process.env.BIGMODEL_API_KEY,
+      BAILIAN_API_KEY: process.env.BAILIAN_API_KEY,
+      VOLC_API_KEY: process.env.VOLC_API_KEY,
+      XIAOMI_API_KEY: process.env.XIAOMI_API_KEY,
+      STEP_API_KEY: process.env.STEP_API_KEY,
+      GLM_API_KEY: process.env.GLM_API_KEY,
+      ZAI_API_KEY: process.env.ZAI_API_KEY,
+      QWEN_API_KEY: process.env.QWEN_API_KEY,
+      DASHSCOPE_API_KEY: process.env.DASHSCOPE_API_KEY,
+      DOUBAO_API_KEY: process.env.DOUBAO_API_KEY,
+      ARK_API_KEY: process.env.ARK_API_KEY,
+      MIMO_API_KEY: process.env.MIMO_API_KEY,
+      STEPFUN_API_KEY: process.env.STEPFUN_API_KEY,
+    };
+    const restore = (): void => {
+      for (const [key, value] of Object.entries(originalEnv)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    };
+
+    try {
+      for (const launcher of ['cc-glm', 'cc-qwen', 'cc-doubao', 'cc-mimo', 'cc-stepfun']) {
+        const file = join(dir, launcher);
+        await writeFile(file, '#!/bin/sh\nexit 0\n', 'utf8');
+        await chmod(file, 0o755);
+      }
+
+      process.env.PATH = `${dir}:/bin:/usr/bin`;
+      for (const key of Object.keys(originalEnv)) {
+        if (key !== 'PATH') delete process.env[key];
+      }
+      process.env.BIGMODEL_API_KEY = 'x';
+      process.env.BAILIAN_API_KEY = 'x';
+      process.env.VOLC_API_KEY = 'x';
+      process.env.XIAOMI_API_KEY = 'x';
+      process.env.STEP_API_KEY = 'x';
+
+      const { code, out } = await run(['doctor']);
+
+      expect(code).toBe(0);
+      expect(out).toContain('✓ cc-glm (ready)');
+      expect(out).toContain('✓ cc-qwen (ready)');
+      expect(out).toContain('✓ cc-doubao (ready)');
+      expect(out).toContain('✓ cc-mimo (ready)');
+      expect(out).toContain('✓ cc-stepfun (ready)');
+    } finally {
+      restore();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   describe('init command', () => {
     let dir: string;
     let secrets: string;

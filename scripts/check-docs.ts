@@ -70,9 +70,15 @@ const nodeSubcommands = [
   .map((match) => match[1] ?? "")
   .filter((command) => command.length > 0 && command !== "round-summary");
 
+const publicInlineSubcommands = driver.includes('subcommand === "selftest"')
+  ? ["selftest"]
+  : [];
 const subcommands = [
-  ...new Set(bashSubcommands.length > 0 ? bashSubcommands : nodeSubcommands),
-];
+  ...new Set([
+    ...(bashSubcommands.length > 0 ? bashSubcommands : nodeSubcommands),
+    ...publicInlineSubcommands,
+  ]),
+].sort();
 
 if (subcommands.length === 0)
   die("check-docs: parsed no subcommands from the driver");

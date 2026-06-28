@@ -47,7 +47,7 @@ Three roles, five phases. Planner orchestrates, the implementer fleet writes cod
 
 ### Phase 1: Plan
 
-> Tooling: `FO=orchestration/fuguectl/fuguectl` — unified driver: `doctor` `init` `preflight` `task` `template` `dispatch` `cache` `integrate` `allocate` `skills` `workspace` `plan` `goal` `loop` `run` `summary` `self-harness` `runtime` `selftest`.
+> Tooling: `FO=orchestration/fuguectl/fuguectl` — unified driver: `doctor` `init` `preflight` `fleet` `task` `template` `dispatch` `cache` `integrate` `allocate` `skills` `workspace` `agents` `experience` `plan` `goal` `loop` `run` `summary` `self-harness` `runtime` `selftest`.
 
 0. **Decide the mode** — small/focused task (1–2 files, one fix)? Skip the fleet: implement directly + Codex review (the high-value generation≠review gate). Fleet-shaped work (≥3–4 parallel subtasks / bulk / cost-sensitive)? Bring up the fleet:
    ```bash
