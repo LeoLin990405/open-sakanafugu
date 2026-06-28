@@ -1625,6 +1625,111 @@ describe('fugue CLI', () => {
       expect(recalled.out).toContain('Score experience relevance on title/body tokens only.');
     });
 
+    it('recalls relabeled failure experience by failure cause', async () => {
+      const retrievalTask = join(dir, 'TASK-retrieval.md');
+      const verificationTask = join(dir, 'TASK-verification.md');
+      await writeFile(
+        retrievalTask,
+        [
+          '# TASK-2026-06-28-991: Retrieval failure',
+          'Status: FAILED',
+          'Priority: P2',
+          'Created: 2026-06-28 20:00',
+          'Completed: 2026-06-28 20:10',
+          '',
+          '## Requirements',
+          'Keep dispatch output retrieval relevant.',
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+      await writeFile(
+        verificationTask,
+        [
+          '# TASK-2026-06-28-990: Verification failure',
+          'Status: FAILED',
+          'Priority: P2',
+          'Created: 2026-06-28 20:00',
+          'Completed: 2026-06-28 20:11',
+          '',
+          '## Requirements',
+          'Keep dispatch output gates deterministic.',
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+
+      await run([
+        'experience',
+        'learn',
+        '--store',
+        store,
+        'code',
+        'retrieval relabel',
+        '--task',
+        retrievalTask,
+        '--allow-failure',
+        '--lesson',
+        'Score dispatch output retrieval by title/body tokens.',
+        '--failure-cause',
+        'retrieval',
+      ]);
+      await run([
+        'experience',
+        'learn',
+        '--store',
+        store,
+        'code',
+        'verification relabel',
+        '--task',
+        verificationTask,
+        '--allow-failure',
+        '--lesson',
+        'Add deterministic dispatch output gates.',
+        '--failure-cause',
+        'verification',
+      ]);
+
+      const recalled = await run([
+        'experience',
+        'recall',
+        '--store',
+        store,
+        'code',
+        '--query',
+        'dispatch output',
+        '--failure-cause',
+        'retrieval',
+      ]);
+      const unknown = await run([
+        'experience',
+        'recall',
+        '--store',
+        store,
+        'code',
+        '--failure-cause',
+        'miscellaneous',
+      ]);
+      const empty = await run([
+        'experience',
+        'recall',
+        '--store',
+        store,
+        'code',
+        '--failure-cause',
+        '   ',
+      ]);
+
+      expect(recalled.code).toBe(0);
+      expect(recalled.out).toContain('[experience] retrieval relabel');
+      expect(recalled.out).toContain('Failure cause:\nretrieval');
+      expect(recalled.out).not.toContain('[experience] verification relabel');
+      expect(unknown.code).toBe(1);
+      expect(unknown.err).toContain('unknown --failure-cause miscellaneous');
+      expect(empty.code).toBe(1);
+      expect(empty.err).toContain('unknown --failure-cause <empty>');
+    });
+
     it('rejects failure learning from a non-terminal task audit', async () => {
       const task = join(dir, 'TASK-active.md');
       await writeFile(

@@ -3,6 +3,8 @@ import { join as joinPath } from 'node:path';
 import { Command, Option } from 'clipanion';
 
 import { FsExperienceStore } from '../../adapters/experience/fs-experience-store.js';
+import { FAILURE_CAUSES, isFailureCause } from '../../domain/experience.js';
+import type { FailureCause, RecallOptions } from '../../domain/experience.js';
 import { isOk } from '../../domain/result.js';
 import { systemClock } from '../../infra/clock.js';
 import { NodeFileSystem } from '../../infra/node-file-system.js';
@@ -101,20 +103,13 @@ const isTerminalFailedTask = (content: string): boolean => {
   return TERMINAL_FAILURE_STATUSES.has(status) && !['', '-'].includes(field(content, 'Completed'));
 };
 
-const FAILURE_CAUSES = [
-  'planning',
-  'context',
-  'retrieval',
-  'tooling',
-  'implementation',
-  'verification',
-  'integration',
-  'runtime',
-  'policy',
-  'other',
-] as const;
+const normalizeFailureCause = (raw: string | undefined): string | undefined =>
+  raw?.trim().toLowerCase();
 
-const FAILURE_CAUSE_SET: ReadonlySet<string> = new Set(FAILURE_CAUSES);
+const failureCauseError = (cause: string | undefined): string => {
+  const rendered = cause === undefined || cause.length === 0 ? '<empty>' : cause;
+  return `unknown --failure-cause ${rendered}; expected one of ${FAILURE_CAUSES.join(', ')}\n`;
+};
 
 abstract class ExperienceCommand extends Command {
   store = Option.String('--store', defaultExperienceDir());
@@ -177,7 +172,7 @@ export class ExperienceLearnCommand extends ExperienceCommand {
     const completed = isCompletedTask(content);
     const lesson = this.lesson?.trim();
     const failureCauseProvided = this.failureCause !== undefined;
-    const failureCause = this.failureCause?.trim().toLowerCase();
+    const failureCause = normalizeFailureCause(this.failureCause);
     if (completed && failureCauseProvided) {
       this.context.stderr.write(
         '--failure-cause is only supported with --allow-failure relabeling\n',
@@ -205,21 +200,17 @@ export class ExperienceLearnCommand extends ExperienceCommand {
       }
       if (
         failureCauseProvided &&
-        (failureCause === undefined ||
-          failureCause.length === 0 ||
-          !FAILURE_CAUSE_SET.has(failureCause))
+        (failureCause === undefined || failureCause.length === 0 || !isFailureCause(failureCause))
       ) {
-        const cause =
-          failureCause === undefined || failureCause.length === 0 ? '<empty>' : failureCause;
-        this.context.stderr.write(
-          `unknown --failure-cause ${cause}; expected one of ${FAILURE_CAUSES.join(', ')}\n`,
-        );
+        this.context.stderr.write(failureCauseError(failureCause));
         return 1;
       }
     }
     let body = renderTaskExperience(this.task, content);
     if (!completed) {
       const relabeledLesson = lesson;
+      const relabeledFailureCause =
+        failureCause !== undefined && isFailureCause(failureCause) ? failureCause : undefined;
       if (relabeledLesson === undefined || relabeledLesson.length === 0) {
         this.context.stderr.write(
           'failed task learning requires --allow-failure and --lesson <reusable lesson>\n',
@@ -229,9 +220,9 @@ export class ExperienceLearnCommand extends ExperienceCommand {
       body = renderTaskExperience(
         this.task,
         content,
-        failureCause === undefined
+        relabeledFailureCause === undefined
           ? { lesson: relabeledLesson }
-          : { lesson: relabeledLesson, failureCause },
+          : { lesson: relabeledLesson, failureCause: relabeledFailureCause },
       );
     }
     const result = await this.experienceStore().add({
@@ -273,16 +264,30 @@ export class ExperienceRecallCommand extends ExperienceCommand {
   workspace = Option.String();
   query = Option.String('--query');
   limit = Option.String('--limit', '3');
+  failureCause = Option.String('--failure-cause');
 
-  override async execute(): Promise<void> {
-    const options =
-      this.query === undefined
-        ? { limit: parseLimit(this.limit) }
-        : { limit: parseLimit(this.limit), query: this.query };
+  override async execute(): Promise<number> {
+    const cause = normalizeFailureCause(this.failureCause);
+    if (this.failureCause !== undefined) {
+      if (cause === undefined || cause.length === 0 || !isFailureCause(cause)) {
+        this.context.stderr.write(failureCauseError(cause));
+        return 1;
+      }
+    }
+    let options: RecallOptions = { limit: parseLimit(this.limit) };
+    if (this.query !== undefined) {
+      options = { ...options, query: this.query };
+    }
+    const recallFailureCause: FailureCause | undefined =
+      cause !== undefined && isFailureCause(cause) ? cause : undefined;
+    if (recallFailureCause !== undefined) {
+      options = { ...options, failureCause: recallFailureCause };
+    }
     const methods = await this.experienceStore().recall(this.workspace, options);
     for (const method of methods) {
       this.context.stdout.write(renderRecall(method.title, method.body));
     }
+    return 0;
   }
 }
 

@@ -91,6 +91,47 @@ describe('FsExperienceStore', () => {
     expect(recalled.map((m) => m.title)).toEqual(['dispatch observations']);
   });
 
+  it('recall filters by failure cause before query ranking', async () => {
+    const clock = fakeClock(1_000);
+    const store = make(clock);
+    await store.add({
+      workspace: 'code',
+      title: 'retrieval failure',
+      body: [
+        'Failure cause:',
+        'retrieval',
+        '',
+        'Relabeled lesson:',
+        'Score dispatch output retrieval by title/body tokens.',
+      ].join('\n'),
+    });
+    clock.set(2_000);
+    await store.add({
+      workspace: 'code',
+      title: 'verification failure',
+      body: [
+        'Failure cause:',
+        'verification',
+        '',
+        'Relabeled lesson:',
+        'Add a deterministic dispatch output gate.',
+      ].join('\n'),
+    });
+    clock.set(3_000);
+    await store.add({
+      workspace: 'code',
+      title: 'success path',
+      body: 'dispatch output gate without a failure cause',
+    });
+
+    const recalled = await store.recall('code', {
+      failureCause: 'retrieval',
+      query: 'dispatch output gate retrieval',
+      limit: 3,
+    });
+    expect(recalled.map((m) => m.title)).toEqual(['retrieval failure']);
+  });
+
   it('recall ignores query stop words instead of treating them as relevance', async () => {
     const clock = fakeClock(1_000);
     const store = make(clock);

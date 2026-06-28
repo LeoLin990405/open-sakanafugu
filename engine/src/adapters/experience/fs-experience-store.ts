@@ -90,6 +90,12 @@ const experienceScore = (method: Method, terms: readonly string[]): number => {
   return terms.filter((term) => methodTerms.has(term)).length;
 };
 
+const methodFailureCause = (method: Method): string | undefined => {
+  const lines = method.body.split(/\r?\n/u);
+  const index = lines.findIndex((line) => line === 'Failure cause:');
+  return index === -1 ? undefined : lines[index + 1]?.trim().toLowerCase();
+};
+
 /** Filesystem-backed experience store: `<root>/<workspace>/<slug>.md` (frontmatter + body). */
 export class FsExperienceStore implements ExperienceStore {
   constructor(
@@ -135,6 +141,9 @@ export class FsExperienceStore implements ExperienceStore {
   async recall(workspace: string, options: RecallOptions = {}): Promise<readonly Method[]> {
     const limit = options.limit ?? 3;
     let methods = await this.methodsIn(workspace);
+    if (options.failureCause !== undefined) {
+      methods = methods.filter((method) => methodFailureCause(method) === options.failureCause);
+    }
     const terms = queryTerms(options.query);
     if (terms.length > 0) {
       methods = methods

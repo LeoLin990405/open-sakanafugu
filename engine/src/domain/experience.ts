@@ -16,6 +16,24 @@ export interface AddMethod {
   readonly body: string;
 }
 
+export const FAILURE_CAUSES = [
+  'planning',
+  'context',
+  'retrieval',
+  'tooling',
+  'implementation',
+  'verification',
+  'integration',
+  'runtime',
+  'policy',
+  'other',
+] as const;
+
+export type FailureCause = (typeof FAILURE_CAUSES)[number];
+
+export const isFailureCause = (value: string): value is FailureCause =>
+  (FAILURE_CAUSES as readonly string[]).includes(value);
+
 export type ExperienceErrorKind = 'empty-body' | 'contains-secret';
 
 export interface ExperienceError {
@@ -26,4 +44,5 @@ export interface ExperienceError {
 export interface RecallOptions {
   readonly query?: string;
   readonly limit?: number;
+  readonly failureCause?: FailureCause;
 }

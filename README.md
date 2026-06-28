@@ -55,8 +55,8 @@
 - **Bounded repair** - keep-best, confirmation passes, user escalation, and
   non-convergence states keep the loop from spinning forever.
 - **Learning without training** - allocation blends benchmark priors with live
-  review outcomes, and completed TASK traces can be distilled into replayed
-  experience memory selected by the next task or prompt.
+  review outcomes, while completed and relabeled failed TASK traces become
+  cause-aware experience memory selected by the next task or prompt.
 - **Self-Harness ready** - the TypeScript engine can mine failed runs, propose
   bounded harness edits, and promote only non-regressing changes.
 
@@ -196,6 +196,30 @@ so final status updates do not clobber concurrent audit lines.
 | Integration and loop   | `fuguectl integrate --work <repo>`, `fuguectl loop init\|record\|decide\|status`, `fuguectl run set\|round\|status\|next\|clear`, `fuguectl summary <round>`                                                                                                                                                  |
 | Memory and maintenance | `fuguectl experience add\|learn\|list\|recall\|show`, `fuguectl self-harness template\|run`, `fuguectl runtime check\|adapt` (provider + installed workflow bundle drift), `fuguectl selftest`                                                                                                                |
 
+## Experience Memory
+
+FuguNano now treats memory as a small write-manage-read loop rather than a
+log dump. A completed TASK can be distilled into a reusable method; a terminal
+failed or blocked TASK is still rejected by default unless an operator explicitly
+relabels it with `--allow-failure --lesson`. Relabeled failures can carry a
+bounded `--failure-cause` tag (`planning`, `context`, `retrieval`, `tooling`,
+`implementation`, `verification`, `integration`, `runtime`, `policy`, `other`),
+and recall can use that tag as a first-pass filter before query ranking.
+
+```bash
+fuguectl experience learn code "failed-query retro" \
+  --task TASK.md \
+  --allow-failure \
+  --lesson "Score relevance on title/body tokens only" \
+  --failure-cause retrieval
+
+fuguectl experience recall code --failure-cause retrieval --query "dispatch output"
+```
+
+This follows the same direction as Agent Workflow Memory, AgentHER, MemRL, and
+recent memory-management studies: do not replay every trace; select the memory
+whose role and failure mode match the current task.
+
 ## TypeScript Engine
 
 `engine/` is the typed implementation: strict TypeScript, ports-and-adapters
@@ -229,7 +253,8 @@ fugue plan "<goal>" --harness fugue-cc|codex|opencode|agy|lite --out <dir> [--mo
 fugue task new|log|done
 fugue template <name> --dir <templates> [--set KEY=VALUE ...]
 fugue workspace list|show|model|context
-fugue experience add|learn|list|recall|show --store <dir>
+fugue experience add|list|show --store <dir>
+fugue experience learn|recall --store <dir> [--failure-cause cause]
 fugue summary <round> --cache <dir> [--task <file>]
 fugue runtime check [--strict] --state <dir> [--skill <installed SKILL.md>] [--alias-skill <legacy SKILL.md>] [--repo-skill <repo SKILL.md>]
 fugue runtime adapt --state <dir> [--skill <installed SKILL.md>] [--alias-skill <legacy SKILL.md>] [--repo-skill <repo SKILL.md>]
@@ -370,6 +395,7 @@ GitHub Security Advisory.
 - [Zleap-AI/Zleap-Agent](https://github.com/Zleap-AI/Zleap-Agent) for workspace isolation and experience-memory inspiration.
 - [SeemSeam/claude_codex_bridge](https://github.com/SeemSeam/claude_codex_bridge) as a reference for the provider-runtime bridge.
 - Shanghai Artificial Intelligence Laboratory's [Self-Harness paper](https://arxiv.org/abs/2606.09498) for the harness-improvement loop that inspired `fuguectl self-harness`.
+- [Agent Workflow Memory](https://arxiv.org/abs/2409.07429), [AgentHER](https://arxiv.org/abs/2603.21357), [MemRL](https://arxiv.org/abs/2601.03192), and memory-management work such as [arXiv 2505.16067](https://arxiv.org/abs/2505.16067) for the cause-aware experience replay direction.
 - [kunchenguid/no-mistakes](https://github.com/kunchenguid/no-mistakes) and [lavish-axi](https://github.com/kunchenguid/lavish-axi) for loop-state and docs-drift ideas.
 - [merkyor/Lynn](https://gitee.com/merkyor/Lynn) for orchestrator-side ownership enforcement inspiration.
 - Anthropic's official `skill-creator` meta-skill for the skill authoring and validation flow.

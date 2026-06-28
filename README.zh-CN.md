@@ -45,7 +45,7 @@
 - **审查保持独立** - implementer 写代码，Codex 或另一个配置好的独立 reviewer 给出 `ACCEPTED` / `NEEDS FIX`。
 - **输出不会丢** - dispatch 可用 `--out` 持久化 reviewer/agent 输出；join barrier 仍强制“派出 N 个，收回 N 个”。
 - **修复有边界** - keep-best、二次确认、询问用户、升级和非收敛状态避免无限循环。
-- **免训练学习** - allocation 用 benchmark prior 加 live review outcome 迭代路由，已完成的 TASK trace 也可以沉淀成后续按任务或 prompt 相关性回放的 experience memory。
+- **免训练学习** - allocation 用 benchmark prior 加 live review outcome 迭代路由；已完成和经人工重标注的失败 TASK trace 会沉淀成按任务、prompt 与失败原因选择回放的 experience memory。
 - **Self-Harness 就绪** - TypeScript engine 能挖失败 run、提出有界 harness edits，并只 promote 不回退的改动。
 
 ## 快速开始
@@ -168,6 +168,22 @@ stdout 或 durable artifact。`task new` 使用独占创建避免并发 operator
 | Integration and loop   | `fuguectl integrate --work <repo>`、`fuguectl loop init\|record\|decide\|status`、`fuguectl run set\|round\|status\|next\|clear`、`fuguectl summary <round>`                                                                                                                                                  |
 | Memory and maintenance | `fuguectl experience add\|learn\|list\|recall\|show`、`fuguectl self-harness template\|run`、`fuguectl runtime check\|adapt`（provider + 已安装 workflow bundle 漂移）、`fuguectl selftest`                                                                                                                   |
 
+## Experience Memory
+
+FuguNano 现在把 memory 当成一个小型的 write-manage-read loop，而不是把日志原样塞回上下文。完成的 TASK 可以蒸馏成 reusable method；终态失败或 blocked 的 TASK 默认仍会被拒绝，只有 operator 明确提供 `--allow-failure --lesson` 时才会作为“重标注失败经验”进入 memory。重标注失败还可以携带受控的 `--failure-cause` 标签（`planning`、`context`、`retrieval`、`tooling`、`implementation`、`verification`、`integration`、`runtime`、`policy`、`other`），recall 时可以先按失败原因过滤，再做 query ranking。
+
+```bash
+fuguectl experience learn code "failed-query retro" \
+  --task TASK.md \
+  --allow-failure \
+  --lesson "Score relevance on title/body tokens only" \
+  --failure-cause retrieval
+
+fuguectl experience recall code --failure-cause retrieval --query "dispatch output"
+```
+
+这个方向借鉴的是 Agent Workflow Memory、AgentHER、MemRL 和 memory-management 研究里的共同结论：不要回放所有 trace，而是选择角色、任务和失败模式都匹配当前问题的经验。
+
 ## TypeScript Engine
 
 `engine/` 是 typed 实现：严格 TypeScript、ports-and-adapters 分层、纯 domain policy，以及真实 harness / storage adapters。`AgentRegistry` 是从 script-first 编排走向 engine-native 编排的一步：coordinator 能在同一轮里把逻辑 agent id 解析到 `fugue-cc`、Codex 和 OpenCode runtime profile。
@@ -197,7 +213,8 @@ fugue plan "<goal>" --harness fugue-cc|codex|opencode|agy|lite --out <dir> [--mo
 fugue task new|log|done
 fugue template <name> --dir <templates> [--set KEY=VALUE ...]
 fugue workspace list|show|model|context
-fugue experience add|learn|list|recall|show --store <dir>
+fugue experience add|list|show --store <dir>
+fugue experience learn|recall --store <dir> [--failure-cause cause]
 fugue summary <round> --cache <dir> [--task <file>]
 fugue runtime check [--strict] --state <dir> [--skill <installed SKILL.md>] [--alias-skill <legacy SKILL.md>] [--repo-skill <repo SKILL.md>]
 fugue runtime adapt --state <dir> [--skill <installed SKILL.md>] [--alias-skill <legacy SKILL.md>] [--repo-skill <repo SKILL.md>]
@@ -315,6 +332,7 @@ npm run test:engine
 - [Zleap-AI/Zleap-Agent](https://github.com/Zleap-AI/Zleap-Agent) 启发了 workspace isolation 和 experience memory。
 - [SeemSeam/claude_codex_bridge](https://github.com/SeemSeam/claude_codex_bridge) 作为 provider-runtime bridge 的参考。
 - 上海人工智能实验室的 [Self-Harness 论文](https://arxiv.org/abs/2606.09498) 启发了 `fuguectl self-harness` 的 harness-improvement loop。
+- [Agent Workflow Memory](https://arxiv.org/abs/2409.07429)、[AgentHER](https://arxiv.org/abs/2603.21357)、[MemRL](https://arxiv.org/abs/2601.03192) 以及 [arXiv 2505.16067](https://arxiv.org/abs/2505.16067) 等 memory-management 研究启发了按失败原因过滤的 experience replay。
 - [kunchenguid/no-mistakes](https://github.com/kunchenguid/no-mistakes) 与 [lavish-axi](https://github.com/kunchenguid/lavish-axi) 启发了 loop-state 和 docs-drift 思路。
 - [merkyor/Lynn](https://gitee.com/merkyor/Lynn) 启发了编排器侧 ownership enforcement。
 - Anthropic 官方 `skill-creator` meta-skill 支撑了 skill authoring 和 validation flow。
