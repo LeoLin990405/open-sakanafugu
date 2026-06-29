@@ -4,11 +4,12 @@ import { runSubcommandBridge } from "./fuguectl-node-bridge.mjs";
 runSubcommandBridge({
   argv: process.argv.slice(2),
   command: "incident",
-  allowed: ["packet"],
+  allowed: ["packet", "recovery"],
   help: `fuguectl-incident — TypeScript incident commands bridge
 
 packet <failure-log|-> [--json] [--source-ref ref]
+recovery <failure-log|incident-json|-> [--json] [--source-ref ref]
 `,
   unknown: (subcommand) =>
-    `fuguectl-incident: unknown subcommand '${subcommand}' (packet)`,
+    `fuguectl-incident: unknown subcommand '${subcommand}' (packet|recovery)`,
 });

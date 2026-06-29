@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Runtime-Node%20%E2%89%A518.18-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js >= 18.18" />
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-28%20suites-7c3aed?style=for-the-badge" alt="28 fuguectl test suites" />
-  <img src="https://img.shields.io/badge/assertions-370-brightgreen?style=for-the-badge" alt="370 fuguectl assertions" />
+  <img src="https://img.shields.io/badge/assertions-373-brightgreen?style=for-the-badge" alt="373 fuguectl assertions" />
   <a href="https://github.com/BicaMindLabs/FuguNano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/FuguNano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
@@ -53,9 +53,9 @@
   configured independent reviewer returns `ACCEPTED` or `NEEDS FIX`.
 - **Structured review packets** - reviewer text can be parsed into
   provenance-bearing findings, rubrics, evidence anchors, and follow-up checks.
-- **Structured incident packets** - failed task, runtime, or CI logs can be
-  normalized into cause-labeled incidents with MAST categories, harness layers,
-  line evidence, and recovery checks.
+- **Structured incident and recovery packets** - failed task, runtime, or CI
+  logs can be normalized into cause-labeled incidents, then turned into bounded
+  containment/repair/validation/learning guidance.
 - **Runtime guard packets** - prompts can be checked before dispatch for
   untrusted input, prompt-injection language, destructive actions, missing
   approval, and missing action-certificate evidence.
@@ -204,7 +204,7 @@ so final status updates do not clobber concurrent audit lines.
 | Planning               | `fuguectl task new\|log\|done\|handoff\|digest`, `fuguectl template <name>`, `fuguectl plan "<goal>" [--harness h\|lite] [--models a,b] [--out <dir>] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task f]`, `fuguectl goal template\|show\|check` |
 | Routing and context    | `fuguectl allocate <type>`, `fuguectl workspace list\|show\|model\|context`, `fuguectl agents template\|validate\|list\|resolve`, `fuguectl skills index\|list\|match\|show\|inject\|validate\|forge`                                                                                                                          |
 | Dispatch and gather    | `fuguectl guard prompt <file\|->`, `fuguectl dispatch <target> [--certificate <file>]`, `fuguectl cache init\|put\|fail\|barrier\|collect\|resume`                                                                                                                                                                             |
-| Integration and loop   | `fuguectl integrate --work <repo>`, `fuguectl review packet <file\|->`, `fuguectl incident packet <file\|->`, `fuguectl loop init\|record\|decide\|status`, `fuguectl run set\|round\|status\|next\|clear`, `fuguectl summary <round>`                                                                                         |
+| Integration and loop   | `fuguectl integrate --work <repo>`, `fuguectl review packet <file\|->`, `fuguectl incident packet\|recovery <file\|->`, `fuguectl loop init\|record\|decide\|status`, `fuguectl run set\|round\|status\|next\|clear`, `fuguectl summary <round>`                                                                               |
 | Memory and maintenance | `fuguectl experience add\|audit\|eval\|learn\|list\|policy\|promote\|recall\|show`, `fuguectl self-harness template\|run`, `fuguectl runtime check\|adapt` (provider + installed workflow bundle drift), `fuguectl selftest`                                                                                                   |
 
 ## Task Handoff Packets
@@ -279,20 +279,28 @@ taxonomy for multi-agent systems, and execution-provenance work frames trace
 evidence as the basis for debugging, audit, and recovery. `incident packet` is
 FuguNano's local, deterministic cut of that stack: it turns raw failure logs
 from review, tests, runtime dispatch, integration, or CI into structured
-incidents.
+incidents. `incident recovery` adds the next bounded step: following PROBE-style
+diagnosis/guidance gates, AIR-style incident response, failure-aware
+observability, and silent-failure postmortems, it emits scoped recovery steps
+only when the incident packet has line evidence.
 
 ```bash
 fuguectl incident packet /tmp/failure.log
 fuguectl incident packet /tmp/failure.log --json
 cat /tmp/failure.log | fuguectl incident packet - --source-ref TASK.md
+fuguectl incident recovery /tmp/failure.log
+fuguectl incident packet /tmp/failure.log --json | fuguectl incident recovery - --json
 ```
 
 Each incident carries a local failure cause (`planning`, `context`, `tooling`,
 `verification`, `integration`, `runtime`, `policy`, and so on), a MAST category,
 a harness layer (`environment`, `tools`, `context`, `lifecycle`,
 `observability`, `verification`, or `governance`), line evidence, source hash,
-and recovery checks. Use it when a run fails before learning from the trace or
-before asking Self-Harness to mine recurring weaknesses.
+and recovery checks. Recovery packets group incidents by failure cause and emit
+four phases: contain the repeated failure, repair the smallest scoped surface,
+validate with the objective gate and independent review, then learn a relabeled
+lesson only after validation passes. Use them when a run fails before learning
+from the trace or before asking Self-Harness to mine recurring weaknesses.
 
 ## Runtime Guard Packets
 
@@ -726,6 +734,7 @@ GitHub Security Advisory.
 - [Less Context, Better Agents](https://arxiv.org/abs/2606.10209), [Active Context Compression](https://arxiv.org/abs/2601.07190), [ContextBudget](https://arxiv.org/abs/2604.01664), and [AdaCoM](https://arxiv.org/abs/2605.30785) for the bounded, source-hashed context-card design behind `task digest`.
 - [Code Review Agent Benchmark](https://arxiv.org/abs/2603.23448), [DeepVerifier](https://arxiv.org/abs/2601.15808), and [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990) for the review-as-verifiable-feedback, rubric-guided, and evidence-provenance framing behind `review packet`.
 - [HarnessFix](https://arxiv.org/abs/2606.06324), [Why Do Multi-Agent LLM Systems Fail? / MAST](https://arxiv.org/abs/2503.13657), and [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990) for the failed-trajectory normalization, multi-agent failure taxonomy, and evidence-provenance framing behind `incident packet`.
+- [Debugging the Debuggers / PROBE](https://arxiv.org/abs/2605.08717), [Improving Agent Safety through Incident Response](https://arxiv.org/abs/2602.11749), [Failure-Aware Observability for LLM Agent Systems](https://arxiv.org/abs/2606.01365), and [A Taxonomy and Postmortem Analysis of Silent Failures in LLM Applications](https://arxiv.org/abs/2606.14589) for the evidence-gated containment, repair, validation, and learning phases behind `incident recovery`.
 - [Agent Workflow Memory](https://arxiv.org/abs/2409.07429), [AgentHER](https://arxiv.org/abs/2603.21357), [MemRL](https://arxiv.org/abs/2601.03192), [How Memory Management Impacts LLM Agents](https://arxiv.org/abs/2505.16067), [Agent-Native Memory Systems](https://arxiv.org/abs/2606.24775), [STALE](https://arxiv.org/abs/2605.06527), [Governing Evolving Memory in LLM Agents](https://arxiv.org/abs/2603.11768), [Agent Memory: Characterization and System Implications](https://arxiv.org/abs/2606.06448), [MemMachine](https://arxiv.org/abs/2604.04853), [RCR-Router](https://arxiv.org/abs/2508.04903), [BudgetMem](https://arxiv.org/abs/2602.06025), [Token Economics for LLM Agents](https://arxiv.org/abs/2605.09104), [Graph Memory for LLM Agents](https://arxiv.org/abs/2606.06036), [Externalization in LLM Agents](https://arxiv.org/abs/2604.08224), [Cost-Sensitive Store Routing](https://arxiv.org/abs/2603.15658), [Compute Allocation for Reasoning-Intensive Retrieval Agents](https://openreview.net/forum?id=nqr4eTODKl), and [RecoAtlas](https://arxiv.org/abs/2605.18805) for the stale-aware, cause-aware, provenance-visible, budgeted, explainable, utility-gated experience replay direction.
 - [Traversal-as-Policy](https://arxiv.org/abs/2603.05517), [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990), [PROV-AGENT](https://arxiv.org/abs/2508.02866), [LLM Agents for Interactive Workflow Provenance](https://arxiv.org/abs/2509.13978), [Distilling Feedback into Memory-as-a-Tool](https://arxiv.org/abs/2601.05960), and [Structured Belief State](https://arxiv.org/abs/2605.11325) for the evidence-tracing, workflow-provenance, policy-card, and retrieval-precision framing behind provenance-bearing injected memory, `experience policy`, and `experience recall --json`.
 - [MemoryAgentBench](https://openreview.net/forum?id=DT7JyQC3MR) and [StructMemEval](https://arxiv.org/abs/2602.11243) for treating memory as a separately evaluated capability, which motivates `experience eval` cases over raw recall results.

@@ -26,6 +26,10 @@ writeFileSync(
     "  process.stdout.write('[incident:packet] incidents=1\\n');",
     "  process.exit(0);",
     "}",
+    "if (argv[1] === 'recovery') {",
+    "  process.stdout.write('[incident:recovery] disposition=READY steps=4\\n');",
+    "  process.exit(0);",
+    "}",
     "console.error('unknown incident command');",
     "process.exit(1);",
     "",
@@ -38,14 +42,33 @@ writeFileSync(logFile, "VERDICT: NEEDS FIX\n");
 suite.ok("help lists incident packet", () =>
   run(incident, ["--help"]).stdout.includes("packet <failure-log|->"),
 );
+suite.ok("help lists incident recovery", () =>
+  run(incident, ["--help"]).stdout.includes(
+    "recovery <failure-log|incident-json|->",
+  ),
+);
 suite.ok("packet delegates to engine CLI", () =>
   run(incident, ["packet", logFile, "--json"]).stdout.includes(
     "[incident:packet]",
   ),
 );
+suite.ok("recovery delegates to engine CLI", () =>
+  run(incident, [
+    "recovery",
+    logFile,
+    "--json",
+    "--source-ref",
+    "TASK.md",
+  ]).stdout.includes("[incident:recovery]"),
+);
 suite.ok("fake engine was invoked", () => existsSync(calls));
 suite.ok("packet forwards file and json flag", () =>
   readFileSync(calls, "utf8").includes(`incident packet ${logFile} --json\n`),
+);
+suite.ok("recovery forwards file, json flag, and source ref", () =>
+  readFileSync(calls, "utf8").includes(
+    `incident recovery ${logFile} --json --source-ref TASK.md\n`,
+  ),
 );
 suite.ok(
   "unknown subcommand is nonzero",

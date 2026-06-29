@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Runtime-Node%20%E2%89%A518.18-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js >= 18.18" />
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-28%20%E5%A5%97%E6%B5%8B%E8%AF%95-7c3aed?style=for-the-badge" alt="28 套 fuguectl 测试" />
-  <img src="https://img.shields.io/badge/assertions-370-brightgreen?style=for-the-badge" alt="370 个 fuguectl 断言" />
+  <img src="https://img.shields.io/badge/assertions-373-brightgreen?style=for-the-badge" alt="373 个 fuguectl 断言" />
   <a href="https://github.com/BicaMindLabs/FuguNano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/FuguNano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
@@ -44,7 +44,7 @@
 - **真实隔离** - worker 在独立 worktree 中编辑，配合 scoped workspace、按需 skills 和 ownership enforcement。
 - **审查保持独立** - implementer 写代码，Codex 或另一个配置好的独立 reviewer 给出 `ACCEPTED` / `NEEDS FIX`。
 - **结构化 Review Packet** - reviewer 文本可被解析成带 provenance 的 findings、rubric、evidence anchor 和后续检查项。
-- **结构化 Incident Packet** - 失败 TASK、runtime、CI 日志可被规整成带失败原因、MAST 大类、harness layer、行证据和恢复检查项的 incident。
+- **结构化 Incident / Recovery Packet** - 失败 TASK、runtime、CI 日志可被规整成带失败原因、MAST 大类、harness layer 与行证据的 incident，再转成有边界的 containment / repair / validation / learning 恢复指令。
 - **Runtime Guard Packet** - prompt 在 dispatch 前可先检查不可信输入、prompt injection 语言、破坏性动作、缺审批和缺 action certificate 证据。
 - **输出不会丢** - dispatch 可用 `--out` 持久化 reviewer/agent 输出；join barrier 仍强制“派出 N 个，收回 N 个”。
 - **修复有边界** - keep-best、二次确认、询问用户、升级和非收敛状态避免无限循环。
@@ -170,7 +170,7 @@ stdout 或 durable artifact。`task new` 使用独占创建避免并发 operator
 | Planning               | `fuguectl task new\|log\|done\|handoff\|digest`、`fuguectl template <name>`、`fuguectl plan "<goal>" [--harness h\|lite] [--models a,b] [--out <dir>] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task f]`、`fuguectl goal template\|show\|check` |
 | Routing and context    | `fuguectl allocate <type>`、`fuguectl workspace list\|show\|model\|context`、`fuguectl agents template\|validate\|list\|resolve`、`fuguectl skills index\|list\|match\|show\|inject\|validate\|forge`                                                                                                                          |
 | Dispatch and gather    | `fuguectl guard prompt <file\|->`、`fuguectl dispatch <target> [--certificate <file>]`、`fuguectl cache init\|put\|fail\|barrier\|collect\|resume`                                                                                                                                                                             |
-| Integration and loop   | `fuguectl integrate --work <repo>`、`fuguectl review packet <file\|->`、`fuguectl incident packet <file\|->`、`fuguectl loop init\|record\|decide\|status`、`fuguectl run set\|round\|status\|next\|clear`、`fuguectl summary <round>`                                                                                         |
+| Integration and loop   | `fuguectl integrate --work <repo>`、`fuguectl review packet <file\|->`、`fuguectl incident packet\|recovery <file\|->`、`fuguectl loop init\|record\|decide\|status`、`fuguectl run set\|round\|status\|next\|clear`、`fuguectl summary <round>`                                                                               |
 | Memory and maintenance | `fuguectl experience add\|audit\|eval\|learn\|list\|policy\|promote\|recall\|show`、`fuguectl self-harness template\|run`、`fuguectl runtime check\|adapt`（provider + 已安装 workflow bundle 漂移）、`fuguectl selftest`                                                                                                      |
 
 ## TASK 交接包
@@ -215,15 +215,17 @@ packet 会保留 `sourceRef`、`sourceSha256` 和 `sourceChars`，并标出 revi
 
 ## Incident Packet
 
-HarnessFix 的关键点是：失败轨迹不要直接交给模型“凭感觉修”，而要先正规化成带 provenance 的证据，再定位 harness 哪一层出了问题。MAST 给出了 multi-agent system 的失败分类；execution provenance 方向则强调 trace evidence 是 debug、audit 和 recovery 的基础。`incident packet` 是 FuguNano 对这一组思想的本地确定性实现：把 review、测试、runtime dispatch、integration 或 CI 的原始失败日志转成结构化 incident。
+HarnessFix 的关键点是：失败轨迹不要直接交给模型“凭感觉修”，而要先正规化成带 provenance 的证据，再定位 harness 哪一层出了问题。MAST 给出了 multi-agent system 的失败分类；execution provenance 方向则强调 trace evidence 是 debug、audit 和 recovery 的基础。`incident packet` 是 FuguNano 对这一组思想的本地确定性实现：把 review、测试、runtime dispatch、integration 或 CI 的原始失败日志转成结构化 incident。`incident recovery` 再向前走一步：借鉴 PROBE 的 diagnosis/guidance gate、AIR 的 incident response 生命周期、failure-aware observability 和 silent-failure postmortem，只在 incident 带行证据时输出可执行的恢复步骤。
 
 ```bash
 fuguectl incident packet /tmp/failure.log
 fuguectl incident packet /tmp/failure.log --json
 cat /tmp/failure.log | fuguectl incident packet - --source-ref TASK.md
+fuguectl incident recovery /tmp/failure.log
+fuguectl incident packet /tmp/failure.log --json | fuguectl incident recovery - --json
 ```
 
-每个 incident 会携带本地失败原因（`planning`、`context`、`tooling`、`verification`、`integration`、`runtime`、`policy` 等）、MAST 大类、harness layer（`environment`、`tools`、`context`、`lifecycle`、`observability`、`verification`、`governance`）、行证据、source hash 和恢复检查项。它适合在一次 run 失败后、把 trace 学进 experience 或交给 Self-Harness 挖 recurring weakness 之前使用。
+每个 incident 会携带本地失败原因（`planning`、`context`、`tooling`、`verification`、`integration`、`runtime`、`policy` 等）、MAST 大类、harness layer（`environment`、`tools`、`context`、`lifecycle`、`observability`、`verification`、`governance`）、行证据、source hash 和恢复检查项。Recovery packet 会按 failure cause 分组，并输出四段：先 containment 避免重复撞墙，再 repair 最小受影响面，接着 validation 用客观 gate 和独立 review 证明修复，最后 learning 只在验证通过后沉淀重标注经验。它适合在一次 run 失败后、把 trace 学进 experience 或交给 Self-Harness 挖 recurring weakness 之前使用。
 
 ## Runtime Guard Packet
 
@@ -495,6 +497,7 @@ npm run test:engine
 - [Less Context, Better Agents](https://arxiv.org/abs/2606.10209)、[Active Context Compression](https://arxiv.org/abs/2601.07190)、[ContextBudget](https://arxiv.org/abs/2604.01664) 与 [AdaCoM](https://arxiv.org/abs/2605.30785) 支撑了 `task digest` 背后的有界、带 source hash 的上下文卡片设计。
 - [Code Review Agent Benchmark](https://arxiv.org/abs/2603.23448)、[DeepVerifier](https://arxiv.org/abs/2601.15808) 与 [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990) 支撑了 `review packet` 背后的 review-as-verifiable-feedback、rubric-guided verification 和 evidence provenance 设计。
 - [HarnessFix](https://arxiv.org/abs/2606.06324)、[Why Do Multi-Agent LLM Systems Fail? / MAST](https://arxiv.org/abs/2503.13657) 与 [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990) 支撑了 `incident packet` 背后的失败轨迹正规化、多智能体失败分类和 evidence provenance 设计。
+- [Debugging the Debuggers / PROBE](https://arxiv.org/abs/2605.08717)、[Improving Agent Safety through Incident Response](https://arxiv.org/abs/2602.11749)、[Failure-Aware Observability for LLM Agent Systems](https://arxiv.org/abs/2606.01365) 与 [A Taxonomy and Postmortem Analysis of Silent Failures in LLM Applications](https://arxiv.org/abs/2606.14589) 支撑了 `incident recovery` 背后的 evidence-gated containment、repair、validation 和 learning 四段设计。
 - [Agent Workflow Memory](https://arxiv.org/abs/2409.07429)、[AgentHER](https://arxiv.org/abs/2603.21357)、[MemRL](https://arxiv.org/abs/2601.03192)、[How Memory Management Impacts LLM Agents](https://arxiv.org/abs/2505.16067)、[Agent-Native Memory Systems](https://arxiv.org/abs/2606.24775)、[STALE](https://arxiv.org/abs/2605.06527)、[Governing Evolving Memory in LLM Agents](https://arxiv.org/abs/2603.11768)、[Agent Memory: Characterization and System Implications](https://arxiv.org/abs/2606.06448)、[MemMachine](https://arxiv.org/abs/2604.04853)、[RCR-Router](https://arxiv.org/abs/2508.04903)、[BudgetMem](https://arxiv.org/abs/2602.06025)、[Token Economics for LLM Agents](https://arxiv.org/abs/2605.09104)、[Graph Memory for LLM Agents](https://arxiv.org/abs/2606.06036)、[Externalization in LLM Agents](https://arxiv.org/abs/2604.08224)、[Cost-Sensitive Store Routing](https://arxiv.org/abs/2603.15658)、[Compute Allocation for Reasoning-Intensive Retrieval Agents](https://openreview.net/forum?id=nqr4eTODKl) 和 [RecoAtlas](https://arxiv.org/abs/2605.18805) 启发了 stale-aware、按失败原因过滤、来源可见、预算可控、可解释、带效用门控的 experience replay。
 - [Traversal-as-Policy](https://arxiv.org/abs/2603.05517)、[From Agent Traces to Trust](https://arxiv.org/abs/2606.04990)、[PROV-AGENT](https://arxiv.org/abs/2508.02866)、[LLM Agents for Interactive Workflow Provenance](https://arxiv.org/abs/2509.13978)、[Distilling Feedback into Memory-as-a-Tool](https://arxiv.org/abs/2601.05960) 与 [Structured Belief State](https://arxiv.org/abs/2605.11325) 支撑了 provenance-bearing injected memory、`experience policy` 和 `experience recall --json` 背后的 evidence tracing、workflow provenance、policy card 与 retrieval precision 设计。
 - [MemoryAgentBench](https://openreview.net/forum?id=DT7JyQC3MR) 与 [StructMemEval](https://arxiv.org/abs/2602.11243) 把 memory 当作独立能力评估，支撑了 `experience eval` 这种直接跑 recall cases 的本地 benchmark。

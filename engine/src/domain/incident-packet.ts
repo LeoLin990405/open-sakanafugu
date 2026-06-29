@@ -78,6 +78,47 @@ export interface IncidentPacketOptions {
   readonly sourceSha256: string;
 }
 
+export const INCIDENT_RECOVERY_PACKET_SCHEMA_VERSION = 'fugunano.incident-recovery.v1' as const;
+
+export type IncidentRecoveryPhase = 'containment' | 'repair' | 'validation' | 'learning';
+
+export type IncidentRecoveryScope = 'agent' | 'operator' | 'harness';
+
+export type IncidentRecoveryDisposition = 'ready' | 'blocked';
+
+export interface IncidentRecoveryGate {
+  readonly disposition: IncidentRecoveryDisposition;
+  readonly reasons: readonly string[];
+}
+
+export interface IncidentRecoveryStep {
+  readonly id: string;
+  readonly phase: IncidentRecoveryPhase;
+  readonly scope: IncidentRecoveryScope;
+  readonly failureCause: FailureCause;
+  readonly action: string;
+  readonly rationale: string;
+  readonly evidenceIncidentIds: readonly string[];
+  readonly checks: readonly string[];
+}
+
+export interface IncidentRecoveryIssue {
+  readonly kind: 'no-incident-evidence' | 'incident-without-evidence';
+  readonly detail: string;
+}
+
+export interface IncidentRecoveryPacket {
+  readonly schemaVersion: typeof INCIDENT_RECOVERY_PACKET_SCHEMA_VERSION;
+  readonly sourceRef: string;
+  readonly sourceSha256: string;
+  readonly sourceChars: number;
+  readonly incidentCount: number;
+  readonly guidanceGate: IncidentRecoveryGate;
+  readonly stepCount: number;
+  readonly steps: readonly IncidentRecoveryStep[];
+  readonly issues: readonly IncidentRecoveryIssue[];
+}
+
 interface IncidentSpec {
   readonly kind: IncidentKind;
   readonly severity: IncidentSeverity;
@@ -357,6 +398,291 @@ export const renderIncidentPacket = (packet: IncidentPacket): string => {
     `[incident:packet:meta] ${JSON.stringify(metadata)}`,
     '## Incidents',
     ...incidentLines,
+    '## Issues',
+    ...(packet.issues.length === 0
+      ? ['- issue: (none)']
+      : packet.issues.map((issue) => `- issue: ${issue.kind}: ${issue.detail}`)),
+    '',
+  ].join('\n');
+};
+
+interface CauseGroup {
+  readonly failureCause: FailureCause;
+  readonly incidents: readonly IncidentRecord[];
+}
+
+interface RecoveryTemplate {
+  readonly containment: string;
+  readonly containmentScope: IncidentRecoveryScope;
+  readonly containmentRationale: string;
+  readonly repair: string;
+  readonly repairScope: IncidentRecoveryScope;
+  readonly repairRationale: string;
+}
+
+const recoveryTemplateFor = (failureCause: FailureCause): RecoveryTemplate => {
+  switch (failureCause) {
+    case 'planning':
+      return {
+        containment: 'pause redispatch until the task contract has explicit acceptance checks',
+        containmentScope: 'operator',
+        containmentRationale:
+          'planning failures repeat when the next attempt inherits the same ambiguous contract',
+        repair: 'rewrite Requirements and acceptance criteria, then regenerate the handoff packet',
+        repairScope: 'operator',
+        repairRationale: 'a bounded task contract gives the next agent executable guidance',
+      };
+    case 'context':
+    case 'retrieval':
+      return {
+        containment:
+          'freeze the current prompt inputs and preserve source provenance before retrying',
+        containmentScope: 'operator',
+        containmentRationale:
+          'context failures are not recoverable if the evidence source changes silently',
+        repair: 'attach stable source refs and regenerate a bounded task digest',
+        repairScope: 'operator',
+        repairRationale:
+          'source-bound context keeps the next attempt grounded without replaying stale trace',
+      };
+    case 'tooling':
+      return {
+        containment: 'stop retrying the same runtime until preflight and dependency checks pass',
+        containmentScope: 'operator',
+        containmentRationale: 'tooling failures usually persist across blind retries',
+        repair:
+          'fix the binary, path, permission, or dependency issue, or route to a healthy runtime',
+        repairScope: 'operator',
+        repairRationale:
+          'the next agent attempt should not spend budget rediscovering broken local tools',
+      };
+    case 'implementation':
+      return {
+        containment: 'isolate the failing code path and avoid broad unrelated refactors',
+        containmentScope: 'agent',
+        containmentRationale:
+          'implementation failures should be repaired at the smallest implicated surface',
+        repair: 'patch the smallest implicated code path and add a regression test',
+        repairScope: 'agent',
+        repairRationale: 'small evidence-grounded patches are easier to validate and review',
+      };
+    case 'verification':
+      return {
+        containment:
+          'treat the red check or reviewer verdict as the active gate for the next attempt',
+        containmentScope: 'operator',
+        containmentRationale:
+          'verification failures need an objective gate before another subjective review',
+        repair:
+          'fix the behavior behind the failing check and keep the review finding as a checklist',
+        repairScope: 'agent',
+        repairRationale: 'turning the failure into a checklist narrows the repair loop',
+      };
+    case 'integration':
+      return {
+        containment:
+          'hold the affected integration path until ownership and artifacts are inspected',
+        containmentScope: 'operator',
+        containmentRationale: 'integration failures can contaminate main if merged speculatively',
+        repair:
+          'resolve conflicts, missing artifacts, or ownership violations before rerunning integration',
+        repairScope: 'operator',
+        repairRationale: 'integration should resume only after the affected boundary is explicit',
+      };
+    case 'runtime':
+      return {
+        containment: 'capture runtime artifacts and timeout metadata before retrying',
+        containmentScope: 'operator',
+        containmentRationale:
+          'runtime failures need observability before a retry can be distinguished from noise',
+        repair: 'rerun with explicit timeout, smaller scope, or a healthier runtime target',
+        repairScope: 'operator',
+        repairRationale:
+          'bounded runtime changes reduce wasted computation after the first warning',
+      };
+    case 'policy':
+      return {
+        containment:
+          'block privileged action until the prompt has guard evidence and approval context',
+        containmentScope: 'harness',
+        containmentRationale: 'policy failures should be contained before tool execution resumes',
+        repair:
+          'separate trusted control from untrusted data and add approval or an action certificate',
+        repairScope: 'harness',
+        repairRationale:
+          'governed recovery prevents the same incident from re-entering the runtime',
+      };
+    case 'other':
+      return {
+        containment: 'collect more evidence before issuing recovery guidance',
+        containmentScope: 'operator',
+        containmentRationale:
+          'unclassified failures are too easy to overfit without more trace evidence',
+        repair: 'add line evidence and relabel the incident with a more specific failure cause',
+        repairScope: 'operator',
+        repairRationale: 'specific relabeling makes future recovery guidance actionable',
+      };
+  }
+};
+
+const unique = (values: readonly string[]): readonly string[] => [...new Set(values)];
+
+const causeGroups = (incidents: readonly IncidentRecord[]): readonly CauseGroup[] => {
+  const groups: CauseGroup[] = [];
+  for (const incident of incidents) {
+    const existing = groups.find((group) => group.failureCause === incident.failureCause);
+    if (existing === undefined) {
+      groups.push({ failureCause: incident.failureCause, incidents: [incident] });
+    } else {
+      groups.splice(groups.indexOf(existing), 1, {
+        failureCause: existing.failureCause,
+        incidents: [...existing.incidents, incident],
+      });
+    }
+  }
+  return groups;
+};
+
+const recoveryChecksFor = (incidents: readonly IncidentRecord[]): readonly string[] =>
+  unique([
+    ...incidents.flatMap((incident) => incident.recommendedChecks),
+    're-run the objective gate that exposed this incident',
+    're-run independent review after the repair',
+  ]);
+
+const learningCheckFor = (failureCause: FailureCause): string =>
+  `if reusable, record the relabeled lesson with --allow-failure --failure-cause ${failureCause}`;
+
+const recoveryIssues = (packet: IncidentPacket): readonly IncidentRecoveryIssue[] => {
+  if (packet.incidents.length === 0) {
+    return [
+      {
+        kind: 'no-incident-evidence',
+        detail: 'recovery guidance is blocked because no incident evidence was detected',
+      },
+    ];
+  }
+  return packet.incidents
+    .filter((incident) => incident.evidence.length === 0)
+    .map((incident) => ({
+      kind: 'incident-without-evidence' as const,
+      detail: `${incident.id} has no line evidence, so guidance is blocked`,
+    }));
+};
+
+const recoveryGate = (issues: readonly IncidentRecoveryIssue[]): IncidentRecoveryGate =>
+  issues.length === 0
+    ? {
+        disposition: 'ready',
+        reasons: ['all recovery steps are grounded in incident line evidence'],
+      }
+    : {
+        disposition: 'blocked',
+        reasons: issues.map((issue) => issue.detail),
+      };
+
+export const incidentRecoveryPacket = (packet: IncidentPacket): IncidentRecoveryPacket => {
+  const issues = recoveryIssues(packet);
+  const guidanceGate = recoveryGate(issues);
+  const steps =
+    guidanceGate.disposition === 'blocked'
+      ? []
+      : causeGroups(packet.incidents)
+          .flatMap((group): readonly Omit<IncidentRecoveryStep, 'id'>[] => {
+            const template = recoveryTemplateFor(group.failureCause);
+            const incidentIds = group.incidents.map((incident) => incident.id);
+            return [
+              {
+                phase: 'containment',
+                scope: template.containmentScope,
+                failureCause: group.failureCause,
+                action: template.containment,
+                rationale: template.containmentRationale,
+                evidenceIncidentIds: incidentIds,
+                checks: ['preserve the current incident packet next to the TASK log'],
+              },
+              {
+                phase: 'repair',
+                scope: template.repairScope,
+                failureCause: group.failureCause,
+                action: template.repair,
+                rationale: template.repairRationale,
+                evidenceIncidentIds: incidentIds,
+                checks: recoveryChecksFor(group.incidents),
+              },
+              {
+                phase: 'validation',
+                scope: 'operator',
+                failureCause: group.failureCause,
+                action: 'prove the repair with the objective gate before another broad attempt',
+                rationale:
+                  'diagnosis only becomes recovery when the next attempt can verify the change',
+                evidenceIncidentIds: incidentIds,
+                checks: recoveryChecksFor(group.incidents),
+              },
+              {
+                phase: 'learning',
+                scope: 'operator',
+                failureCause: group.failureCause,
+                action: 'distill the reusable lesson only after validation passes',
+                rationale: 'failed traces should enter memory as relabeled lessons, not raw logs',
+                evidenceIncidentIds: incidentIds,
+                checks: [learningCheckFor(group.failureCause)],
+              },
+            ];
+          })
+          .map((step, index) => ({
+            ...step,
+            id: `R${String(index + 1)}`,
+          }));
+
+  return {
+    schemaVersion: INCIDENT_RECOVERY_PACKET_SCHEMA_VERSION,
+    sourceRef: packet.sourceRef,
+    sourceSha256: packet.sourceSha256,
+    sourceChars: packet.sourceChars,
+    incidentCount: packet.incidentCount,
+    guidanceGate,
+    stepCount: steps.length,
+    steps,
+    issues,
+  };
+};
+
+const stepEvidenceText = (ids: readonly string[]): string =>
+  ids.length === 0 ? 'incidents=(none)' : `incidents=${ids.join(',')}`;
+
+export const renderIncidentRecoveryPacket = (packet: IncidentRecoveryPacket): string => {
+  const metadata = {
+    schemaVersion: packet.schemaVersion,
+    sourceRef: packet.sourceRef,
+    sourceSha256: packet.sourceSha256,
+    sourceChars: packet.sourceChars,
+    incidentCount: packet.incidentCount,
+    disposition: packet.guidanceGate.disposition,
+    stepCount: packet.stepCount,
+  };
+  const stepLines =
+    packet.steps.length === 0
+      ? ['- step: (none)']
+      : packet.steps.flatMap((step) => [
+          `- ${step.id} [${step.phase}/${step.scope}/${step.failureCause}] ${stepEvidenceText(
+            step.evidenceIncidentIds,
+          )} :: ${step.action}`,
+          `  - rationale: ${step.rationale}`,
+          ...step.checks.map((check) => `  - check: ${check}`),
+        ]);
+  return [
+    `[incident:recovery] disposition=${packet.guidanceGate.disposition.toUpperCase()} steps=${String(
+      packet.stepCount,
+    )}`,
+    `[incident:recovery:meta] ${JSON.stringify(metadata)}`,
+    '## Guidance Gate',
+    ...packet.guidanceGate.reasons.map(
+      (reason) => `- ${packet.guidanceGate.disposition}: ${reason}`,
+    ),
+    '## Recovery Steps',
+    ...stepLines,
     '## Issues',
     ...(packet.issues.length === 0
       ? ['- issue: (none)']

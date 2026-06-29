@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   INCIDENT_PACKET_SCHEMA_VERSION,
+  INCIDENT_RECOVERY_PACKET_SCHEMA_VERSION,
+  incidentRecoveryPacket,
   incidentPacket,
+  renderIncidentRecoveryPacket,
   renderIncidentPacket,
 } from './incident-packet.js';
 
@@ -160,5 +163,112 @@ describe('renderIncidentPacket', () => {
     expect(excerpt).toBeDefined();
 
     expect(renderIncidentPacket(packet)).toContain(`line 1 ${JSON.stringify(excerpt)}`);
+  });
+});
+
+describe('incidentRecoveryPacket', () => {
+  it('turns evidence-grounded incidents into ordered recovery guidance', () => {
+    const incidents = incidentPacket(
+      [
+        'VERDICT: NEEDS FIX',
+        'spawn cc-kimi ENOENT',
+        '[runtime-guard:packet] disposition=BLOCK findings=1',
+      ].join('\n'),
+      { sourceRef: '/tmp/failure.log', sourceSha256: 'hash' },
+    );
+
+    const recovery = incidentRecoveryPacket(incidents);
+
+    expect(recovery.schemaVersion).toBe(INCIDENT_RECOVERY_PACKET_SCHEMA_VERSION);
+    expect(recovery.guidanceGate).toEqual({
+      disposition: 'ready',
+      reasons: ['all recovery steps are grounded in incident line evidence'],
+    });
+    expect(recovery.stepCount).toBe(12);
+    expect(recovery.steps.map((step) => step.phase).slice(0, 4)).toEqual([
+      'containment',
+      'repair',
+      'validation',
+      'learning',
+    ]);
+    expect(recovery.steps[0]).toMatchObject({
+      id: 'R1',
+      phase: 'containment',
+      scope: 'harness',
+      failureCause: 'policy',
+      evidenceIncidentIds: ['I1'],
+    });
+    expect(recovery.steps[4]).toMatchObject({
+      phase: 'containment',
+      failureCause: 'verification',
+      evidenceIncidentIds: ['I2'],
+    });
+    expect(recovery.steps[8]).toMatchObject({
+      phase: 'containment',
+      failureCause: 'tooling',
+      evidenceIncidentIds: ['I3'],
+    });
+    expect(recovery.steps[9]?.checks).toContain('run fuguectl preflight for the affected runtime');
+    expect(recovery.steps[11]?.checks).toEqual([
+      'if reusable, record the relabeled lesson with --allow-failure --failure-cause tooling',
+    ]);
+  });
+
+  it('blocks recovery guidance when no incident evidence exists', () => {
+    const incidents = incidentPacket('All checks passed.\n', {
+      sourceRef: 'stdin',
+      sourceSha256: 'hash',
+    });
+
+    const recovery = incidentRecoveryPacket(incidents);
+
+    expect(recovery.guidanceGate.disposition).toBe('blocked');
+    expect(recovery.steps).toEqual([]);
+    expect(recovery.issues).toEqual([
+      {
+        kind: 'no-incident-evidence',
+        detail: 'recovery guidance is blocked because no incident evidence was detected',
+      },
+    ]);
+  });
+
+  it('blocks recovery guidance for externally supplied evidence-free incidents', () => {
+    const incidents = incidentPacket('VERDICT: NEEDS FIX\n', {
+      sourceRef: 'review.txt',
+      sourceSha256: 'hash',
+    });
+    const incident = incidents.incidents[0];
+    if (incident === undefined) throw new Error('expected an incident');
+    const recovery = incidentRecoveryPacket({
+      ...incidents,
+      incidents: [{ ...incident, evidence: [] }],
+    });
+
+    expect(recovery.guidanceGate.disposition).toBe('blocked');
+    expect(recovery.steps).toEqual([]);
+    expect(recovery.issues).toEqual([
+      {
+        kind: 'incident-without-evidence',
+        detail: 'I1 has no line evidence, so guidance is blocked',
+      },
+    ]);
+  });
+});
+
+describe('renderIncidentRecoveryPacket', () => {
+  it('renders parse-stable recovery markdown', () => {
+    const incidents = incidentPacket('FAIL tests vitest assertion\n', {
+      sourceRef: '/tmp/failure.log',
+      sourceSha256: 'hash',
+    });
+    const recovery = incidentRecoveryPacket(incidents);
+
+    expect(renderIncidentRecoveryPacket(recovery)).toContain(
+      '[incident:recovery] disposition=READY steps=4',
+    );
+    expect(renderIncidentRecoveryPacket(recovery)).toContain(
+      '- R1 [containment/operator/verification] incidents=I1 :: treat the red check or reviewer verdict as the active gate for the next attempt',
+    );
+    expect(renderIncidentRecoveryPacket(recovery)).toContain('- issue: (none)');
   });
 });

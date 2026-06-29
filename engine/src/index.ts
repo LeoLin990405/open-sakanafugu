@@ -114,6 +114,13 @@ export type {
   IncidentPacketIssue,
   IncidentPacketOptions,
   IncidentRecord,
+  IncidentRecoveryDisposition,
+  IncidentRecoveryGate,
+  IncidentRecoveryIssue,
+  IncidentRecoveryPacket,
+  IncidentRecoveryPhase,
+  IncidentRecoveryScope,
+  IncidentRecoveryStep,
   IncidentSeverity,
 } from './domain/incident-packet.js';
 export {
@@ -121,8 +128,11 @@ export {
   INCIDENT_KINDS,
   INCIDENT_MAST_CATEGORIES,
   INCIDENT_PACKET_SCHEMA_VERSION,
+  INCIDENT_RECOVERY_PACKET_SCHEMA_VERSION,
   incidentPacket,
+  incidentRecoveryPacket,
   renderIncidentPacket,
+  renderIncidentRecoveryPacket,
 } from './domain/incident-packet.js';
 export type {
   RuntimeGuardDisposition,
