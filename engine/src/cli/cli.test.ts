@@ -1108,6 +1108,149 @@ describe('fugue CLI', () => {
       expect(taskLog).toContain(`out=${outFile}`);
     });
 
+    it('writes dispatch action certificates with checkpoint evidence', async () => {
+      const outFile = join(dir, 'artifacts', 'review.txt');
+      const certificateFile = join(dir, 'artifacts', 'review.cert.json');
+      const task = join(dir, 'TASK-certificate.md');
+      await writeFile(
+        codexBin,
+        [
+          '#!/usr/bin/env bash',
+          `echo "ARGV: $*" > "${codexCalled}"`,
+          'printf "VERDICT: ACCEPTED\\n"',
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+      await chmod(codexBin, 0o755);
+      await writeFile(task, '## Execution log\n', 'utf8');
+
+      const dispatched = await run(
+        args(
+          'gpt-5.5',
+          '--harness',
+          'codex',
+          '--prompt',
+          'review this change',
+          '--out',
+          outFile,
+          '--certificate',
+          certificateFile,
+          '--approval-class',
+          'operator-reviewed',
+          '--certificate-assumption',
+          'reviewer is independent',
+          '--certificate-externality',
+          'destination=local-file',
+          '--task',
+          task,
+          '--task-type',
+          'review',
+        ),
+      );
+      const certificate = JSON.parse(await readFile(certificateFile, 'utf8')) as {
+        readonly schemaVersion: string;
+        readonly actionId: string;
+        readonly runtime: { readonly harness: string; readonly target: string };
+        readonly action: {
+          readonly promptSha256: string;
+          readonly promptChars: number;
+          readonly taskRef: string;
+          readonly taskType: string;
+          readonly workspace?: string;
+        };
+        readonly approval: { readonly class: string };
+        readonly assumptions: readonly string[];
+        readonly externalities: readonly string[];
+        readonly outcome: {
+          readonly status: string;
+          readonly exitCode: number;
+          readonly outputChars: number;
+          readonly outputSha256: string;
+          readonly outputPath: string;
+        };
+        readonly checkpoints: readonly { readonly kind: string; readonly status: string }[];
+      };
+      const taskLog = await readFile(task, 'utf8');
+
+      expect(dispatched.code).toBe(0);
+      expect(dispatched.out).toBe('VERDICT: ACCEPTED\n');
+      expect(certificate.schemaVersion).toBe('fugunano.action-certificate.v1');
+      expect(certificate.actionId).toMatch(/^[a-f0-9]{64}$/u);
+      expect(certificate.runtime).toEqual({ harness: 'codex', target: 'gpt-5.5' });
+      expect(certificate.action.promptSha256).toBe(
+        createHash('sha256').update('review this change', 'utf8').digest('hex'),
+      );
+      expect(certificate.action.promptChars).toBe('review this change'.length);
+      expect(certificate.action.taskRef).toBe(task);
+      expect(certificate.action.taskType).toBe('review');
+      expect(certificate.action.workspace).toBeUndefined();
+      expect(certificate.approval.class).toBe('operator-reviewed');
+      expect(certificate.assumptions).toEqual(['reviewer is independent']);
+      expect(certificate.externalities).toEqual(['destination=local-file']);
+      expect(certificate.outcome).toMatchObject({
+        status: 'ok',
+        exitCode: 0,
+        outputChars: 'VERDICT: ACCEPTED\n'.length,
+        outputSha256: createHash('sha256').update('VERDICT: ACCEPTED\n', 'utf8').digest('hex'),
+        outputPath: outFile,
+      });
+      expect(certificate.checkpoints).toEqual([
+        expect.objectContaining({ kind: 'pre-action-admissibility', status: 'passed' }),
+        expect.objectContaining({ kind: 'action-open', status: 'recorded' }),
+        expect.objectContaining({ kind: 'assumption-capture', status: 'recorded' }),
+        expect.objectContaining({ kind: 'approval', status: 'recorded' }),
+        expect.objectContaining({ kind: 'outcome-closure', status: 'passed' }),
+      ]);
+      expect(taskLog).toContain(`status=started out=${outFile} cert=${certificateFile}`);
+      expect(taskLog).toContain(`status=ok rc=0`);
+      expect(taskLog).toContain(`cert=${certificateFile}`);
+    });
+
+    it('rejects certificate metadata without a requested certificate artifact', async () => {
+      const dispatched = await run(
+        args(
+          'gpt-5.5',
+          '--harness',
+          'codex',
+          '--prompt',
+          'review this change',
+          '--approval-class',
+          'operator-reviewed',
+        ),
+      );
+
+      expect(dispatched.code).toBe(2);
+      expect(dispatched.err).toContain('require --certificate');
+    });
+
+    it('fails dispatch when a requested action certificate cannot be written', async () => {
+      const certificateDir = join(dir, 'certificate-dir');
+      await mkdir(certificateDir, { recursive: true });
+      await writeFile(
+        codexBin,
+        ['#!/usr/bin/env bash', 'printf "VERDICT: ACCEPTED\\n"', ''].join('\n'),
+        'utf8',
+      );
+      await chmod(codexBin, 0o755);
+
+      const dispatched = await run(
+        args(
+          'gpt-5.5',
+          '--harness',
+          'codex',
+          '--prompt',
+          'review this change',
+          '--certificate',
+          certificateDir,
+        ),
+      );
+
+      expect(dispatched.code).toBe(1);
+      expect(dispatched.out).toBe('VERDICT: ACCEPTED\n');
+      expect(dispatched.err).toContain('failed to write --certificate');
+    });
+
     it('prints verbose dispatch observability to stderr without changing stdout', async () => {
       await writeFile(
         codexBin,

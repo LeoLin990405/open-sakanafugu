@@ -60,6 +60,25 @@ export {
 } from './domain/policy-eval.js';
 export { checkProviderConfig } from './domain/preflight-checks.js';
 export type {
+  ActionApprovalClass,
+  ActionCertificate,
+  ActionCertificateAction,
+  ActionCertificateApproval,
+  ActionCertificateCheckpoint,
+  ActionCertificateOutcome,
+  ActionCertificateRuntime,
+  ActionCheckpointKind,
+  ActionCheckpointStatus,
+  BuildActionCertificateInput,
+} from './domain/action-certificate.js';
+export {
+  ACTION_APPROVAL_CLASSES,
+  ACTION_CERTIFICATE_SCHEMA_VERSION,
+  ACTION_CHECKPOINT_KINDS,
+  buildActionCertificate,
+  isActionApprovalClass,
+} from './domain/action-certificate.js';
+export type {
   DispatchRequest,
   DispatchResult,
   DispatchError,

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readdir } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
 import { homedir } from 'node:os';
@@ -13,6 +14,12 @@ import { AgyHarness } from '../../adapters/harness/agy-harness.js';
 import { OpencodeHarness } from '../../adapters/harness/opencode-harness.js';
 import { FsSkillCatalog } from '../../adapters/skills/fs-skill-catalog.js';
 import { FsWorkspaceStore } from '../../adapters/workspace/fs-workspace-store.js';
+import {
+  buildActionCertificate,
+  isActionApprovalClass,
+  type ActionApprovalClass,
+  type ActionCertificate,
+} from '../../domain/action-certificate.js';
 import {
   DEFAULT_ALLOCATION_PARAMS,
   type BenchTable,
@@ -214,8 +221,13 @@ const formatDurationMs = (ms: number): string => {
   return `${(ms / 1000).toFixed(1)}s`;
 };
 
+const sha256 = (value: string): string => createHash('sha256').update(value, 'utf8').digest('hex');
+
 const failureFields = (kind: string | undefined): string =>
   kind === undefined ? '' : ` error=${kind}`;
+
+const actionApprovalClassError = (raw: string): string =>
+  `unknown --approval-class ${raw}; expected one of not-required, operator-reviewed, runtime-enforced, external-approval\n`;
 
 const writeText = async (stream: NodeJS.WritableStream, text: string): Promise<void> =>
   new Promise((resolve, reject) => {
@@ -328,6 +340,10 @@ export class DispatchCommand extends Command {
   ledger = Option.String('--ledger', defaultAllocationLedger());
   timeoutMs = Option.String('--timeout-ms', process.env.FUGUE_DISPATCH_TIMEOUT_MS ?? '0');
   out = Option.String('--out');
+  certificate = Option.String('--certificate');
+  approvalClass = Option.String('--approval-class', 'not-required');
+  certificateAssumptions = Option.Array('--certificate-assumption', []);
+  certificateExternalities = Option.Array('--certificate-externality', []);
   requireOutput = Option.Boolean('--require-output', false);
   verbose = Option.Boolean('--verbose', false);
   harnessArgs = Option.Array('--harness-arg', []);
@@ -342,6 +358,25 @@ export class DispatchCommand extends Command {
     }
     if (this.codexClean && this.harness !== 'codex') {
       this.context.stderr.write('--codex-clean requires --harness codex\n');
+      return 2;
+    }
+    if (!isActionApprovalClass(this.approvalClass)) {
+      this.context.stderr.write(actionApprovalClassError(this.approvalClass));
+      return 2;
+    }
+    if (this.certificate !== undefined && this.certificate.trim().length === 0) {
+      this.context.stderr.write('--certificate must be a non-empty path\n');
+      return 2;
+    }
+    if (
+      this.certificate === undefined &&
+      (this.approvalClass !== 'not-required' ||
+        this.certificateAssumptions.length > 0 ||
+        this.certificateExternalities.length > 0)
+    ) {
+      this.context.stderr.write(
+        '--approval-class, --certificate-assumption, and --certificate-externality require --certificate\n',
+      );
       return 2;
     }
 
@@ -426,7 +461,11 @@ export class DispatchCommand extends Command {
       return 2;
     }
 
-    await this.appendTaskStart({ ...(this.out !== undefined ? { outputPath: this.out } : {}) });
+    const openedAt = new Date().toISOString();
+    await this.appendTaskStart({
+      ...(this.out !== undefined ? { outputPath: this.out } : {}),
+      ...(this.certificate !== undefined ? { certificatePath: this.certificate } : {}),
+    });
     const startedAt = performance.now();
     const result = await this.harnessFor(this.harness, timeoutMs).dispatch({
       agent: this.target,
@@ -437,11 +476,12 @@ export class DispatchCommand extends Command {
     const elapsedMs = performance.now() - startedAt;
     const rc = isOk(result) ? result.value.exitCode : (result.error.exitCode ?? 1);
     let finalRc = rc;
+    let output = '';
     let outputChars = 0;
     let separateVerboseObservation = false;
     let failureKind: string | undefined = isOk(result) ? undefined : result.error.kind;
     if (isOk(result)) {
-      const output = result.value.output;
+      output = result.value.output;
       outputChars = output.length;
       if (this.requireOutput && output.trim().length === 0) {
         this.context.stderr.write('empty dispatch output (--require-output)\n');
@@ -464,6 +504,30 @@ export class DispatchCommand extends Command {
     } else {
       this.context.stderr.write(`${result.error.detail}\n`);
     }
+    const closedAt = new Date().toISOString();
+
+    if (this.certificate !== undefined) {
+      const certificate = this.actionCertificate({
+        openedAt,
+        closedAt,
+        elapsedMs,
+        finalRc,
+        ...(failureKind === undefined ? {} : { failureKind }),
+        output,
+        outputChars,
+        prompt,
+      });
+      try {
+        await this.fs.write(this.certificate, `${JSON.stringify(certificate, null, 2)}\n`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.context.stderr.write(
+          `failed to write --certificate ${this.certificate}: ${message}\n`,
+        );
+        finalRc = 1;
+        failureKind = 'certificate-write-failed';
+      }
+    }
 
     if (this.verbose) {
       this.context.stderr.write(
@@ -480,16 +544,74 @@ export class DispatchCommand extends Command {
       ...(failureKind !== undefined ? { errorKind: failureKind } : {}),
       outputChars,
       ...(this.out !== undefined ? { outputPath: this.out } : {}),
+      ...(this.certificate !== undefined ? { certificatePath: this.certificate } : {}),
     });
     await this.appendAllocationLedger();
     return finalRc;
   }
 
-  private async appendTaskStart(metrics: { readonly outputPath?: string }): Promise<void> {
+  private async appendTaskStart(metrics: {
+    readonly outputPath?: string;
+    readonly certificatePath?: string;
+  }): Promise<void> {
     const outputPath = metrics.outputPath === undefined ? '' : ` out=${metrics.outputPath}`;
+    const certificatePath =
+      metrics.certificatePath === undefined ? '' : ` cert=${metrics.certificatePath}`;
     await this.appendTaskLine(
-      `dispatch → ${this.target} [${this.harness}] (status=started${outputPath})`,
+      `dispatch → ${this.target} [${this.harness}] (status=started${outputPath}${certificatePath})`,
     );
+  }
+
+  private actionCertificate(input: {
+    readonly openedAt: string;
+    readonly closedAt: string;
+    readonly elapsedMs: number;
+    readonly finalRc: number;
+    readonly failureKind?: string;
+    readonly output: string;
+    readonly outputChars: number;
+    readonly prompt: string;
+  }): ActionCertificate {
+    const promptSha256 = sha256(input.prompt);
+    const outputSha256 = sha256(input.output);
+    const status = input.finalRc === 0 ? 'ok' : 'failed';
+    const actionSeed = JSON.stringify({
+      schemaVersion: 'fugunano.action-certificate.v1',
+      harness: this.harness,
+      target: this.target,
+      promptSha256,
+      outputSha256,
+      rc: input.finalRc,
+      taskRef: this.task ?? null,
+      taskType: this.taskType ?? null,
+      workspace: this.workspace ?? null,
+    });
+    return buildActionCertificate({
+      actionId: sha256(actionSeed),
+      issuedAt: input.closedAt,
+      openedAt: input.openedAt,
+      closedAt: input.closedAt,
+      runtime: { harness: this.harness, target: this.target },
+      action: {
+        promptSha256,
+        promptChars: input.prompt.length,
+        ...(this.task === undefined ? {} : { taskRef: this.task }),
+        ...(this.taskType === undefined ? {} : { taskType: this.taskType }),
+        ...(this.workspace === undefined ? {} : { workspace: this.workspace }),
+      },
+      approvalClass: this.approvalClass as ActionApprovalClass,
+      assumptions: this.certificateAssumptions,
+      externalities: this.certificateExternalities,
+      outcome: {
+        status,
+        exitCode: input.finalRc,
+        durationMs: Math.max(0, Math.round(input.elapsedMs)),
+        outputChars: input.outputChars,
+        outputSha256,
+        ...(this.out === undefined ? {} : { outputPath: this.out }),
+        ...(input.failureKind === undefined ? {} : { errorKind: input.failureKind }),
+      },
+    });
   }
 
   private harnessFor(name: HarnessName, timeoutMs: number | undefined): Harness {
@@ -630,16 +752,19 @@ export class DispatchCommand extends Command {
       readonly errorKind?: string;
       readonly outputChars: number;
       readonly outputPath?: string;
+      readonly certificatePath?: string;
     },
   ): Promise<void> {
     const outputPath = metrics.outputPath === undefined ? '' : ` out=${metrics.outputPath}`;
+    const certificatePath =
+      metrics.certificatePath === undefined ? '' : ` cert=${metrics.certificatePath}`;
     const status = rc === 0 ? 'ok' : 'failed';
     await this.appendTaskLine(
       `dispatch → ${this.target} [${this.harness}] (status=${status} rc=${String(
         rc,
       )}${failureFields(metrics.errorKind)} took=${formatDurationMs(metrics.elapsedMs)} output_chars=${String(
         metrics.outputChars,
-      )}${outputPath})`,
+      )}${outputPath}${certificatePath})`,
     );
   }
 

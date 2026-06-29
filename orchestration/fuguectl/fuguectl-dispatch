@@ -5,7 +5,7 @@ runSimpleBridge({
   argv: process.argv.slice(2),
   command: "dispatch",
   helpOnEmpty: false,
-  help: `fuguectl-dispatch <target> [--harness fugue-cc|codex|opencode|agy] [--timeout-ms n] [--codex-clean] [--harness-arg x] [--out <file>] [--require-output] [--verbose] [--workspace <ws> [--experience-query q] [--experience-source manual|task] [--experience-source-ref ref] [--experience-limit n] [--experience-budget-chars n] [--experience-trust trusted|all] [--experience-max-age-days n]] (--template <name> [--set K=V ...] | --prompt-file <f> | --prompt <text>) [--task <file>]
+  help: `fuguectl-dispatch <target> [--harness fugue-cc|codex|opencode|agy] [--timeout-ms n] [--codex-clean] [--harness-arg x] [--out <file>] [--certificate <file> [--approval-class class] [--certificate-assumption text] [--certificate-externality fact]] [--require-output] [--verbose] [--workspace <ws> [--experience-query q] [--experience-source manual|task] [--experience-source-ref ref] [--experience-limit n] [--experience-budget-chars n] [--experience-trust trusted|all] [--experience-max-age-days n]] (--template <name> [--set K=V ...] | --prompt-file <f> | --prompt <text>) [--task <file>]
 --task-type T  append (T, agent) into alloc ledger
 --skills a,b   inject selected skills into that agent context
 `,

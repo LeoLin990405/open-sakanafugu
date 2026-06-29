@@ -79,6 +79,14 @@ suite.ok("help lists dispatch harness args", () =>
 suite.ok("help lists dispatch output file", () =>
   helpOut.includes("--out <file>"),
 );
+suite.ok("help lists dispatch action certificate file", () =>
+  helpOut.includes("--certificate <file>"),
+);
+suite.ok("help groups dispatch certificate metadata under certificate", () =>
+  helpOut.includes(
+    "[--certificate <file> [--approval-class class] [--certificate-assumption text] [--certificate-externality fact]]",
+  ),
+);
 suite.ok("help lists required dispatch output", () =>
   helpOut.includes("--require-output"),
 );

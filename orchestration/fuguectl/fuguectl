@@ -17,7 +17,7 @@ const help = `fuguectl — fugue workflow control-plane entrypoint.
   fuguectl smoke [--harness all|codex|opencode|agy] [--timeout-ms n] [--task <file>] [--out-dir <dir>]  live lite-runtime smoke (+ <out-dir>/summary.json)
   fuguectl task new|log|done|handoff   TASK file scaffold/log/finalize/handoff packet
   fuguectl template <n> [--set K=V]   render prompt template
-  fuguectl dispatch <agent> [--harness fugue-cc|codex|opencode|agy] [--timeout-ms n] [--codex-clean] [--harness-arg x] [--out <file>] [--require-output] [--verbose] [--workspace ws [--experience-query q] [--experience-source manual|task] [--experience-source-ref ref] [--experience-limit n] [--experience-budget-chars n] [--experience-trust trusted|all] [--experience-max-age-days n]] --template <n>|--prompt-file <f>|--prompt <text> [--task <file>]
+  fuguectl dispatch <agent> [--harness fugue-cc|codex|opencode|agy] [--timeout-ms n] [--codex-clean] [--harness-arg x] [--out <file>] [--certificate <file> [--approval-class class] [--certificate-assumption text] [--certificate-externality fact]] [--require-output] [--verbose] [--workspace ws [--experience-query q] [--experience-source manual|task] [--experience-source-ref ref] [--experience-limit n] [--experience-budget-chars n] [--experience-trust trusted|all] [--experience-max-age-days n]] --template <n>|--prompt-file <f>|--prompt <text> [--task <file>]
   fuguectl cache ...           result cache + join barrier
   fuguectl integrate --work <repo> --agents "a b" [--onconflict abort|skip]
   fuguectl allocate <task-type> [--top]|record|stats|reset

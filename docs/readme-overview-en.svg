@@ -125,7 +125,7 @@
   />
   <text x="812" y="124" class="chip">fuguectl</text>
   <text x="812" y="151" class="cardText">24 subcommands</text>
-  <text x="812" y="174" class="cardText">25 test suites · 347 assertions</text>
+  <text x="812" y="174" class="cardText">25 test suites · 351 assertions</text>
 
   <rect
     x="78"

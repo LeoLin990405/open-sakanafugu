@@ -33,6 +33,12 @@ suite.ok("help lists dispatch harness args", () =>
 suite.ok("help lists dispatch output file", () =>
   help.includes("--out <file>"),
 );
+suite.ok("help lists dispatch action certificate file", () =>
+  help.includes("--certificate <file>"),
+);
+suite.ok("help lists dispatch approval class", () =>
+  help.includes("--approval-class class"),
+);
 suite.ok("help lists required dispatch output", () =>
   help.includes("--require-output"),
 );
