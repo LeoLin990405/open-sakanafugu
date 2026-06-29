@@ -12,4 +12,5 @@ longcontext	kimi
 math	stepfun,mimo
 frontend	agy
 review	coder
+agent-cli	qwen-code,kimi-code,mimo-code
 fallback	mimo
