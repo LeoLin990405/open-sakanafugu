@@ -86,6 +86,11 @@ writeFileSync(
     "  if (!file || !fs.existsSync(file)) die('no task file');",
     "  const text = fs.readFileSync(file, 'utf8');",
     "  process.stdout.write('[task:handoff] ' + text.split('\\n')[0].replace(/^# /, '') + '\\n');",
+    "} else if (cmd === 'digest') {",
+    "  const file = args[0];",
+    "  if (!file || !fs.existsSync(file)) die('no task file');",
+    "  const text = fs.readFileSync(file, 'utf8');",
+    "  process.stdout.write('[task:digest] ' + text.split('\\n')[0].replace(/^# /, '') + '\\n');",
     "} else {",
     "  die('unknown task command ' + (cmd || ''));",
     "}",
@@ -109,6 +114,9 @@ suite.ok("title goes into title line", () =>
 );
 suite.ok("has Log section", () =>
   /^## Log$/mu.test(readFileSync(first, "utf8")),
+);
+suite.ok("help lists task digest", () =>
+  run(task, ["--help"]).stdout.includes("digest  <task-file>"),
 );
 
 const second = run(task, ["new", "second"]).stdout.trim();
@@ -151,6 +159,9 @@ suite.ok(
 suite.ok("handoff renders task packet", () =>
   run(task, ["handoff", first]).stdout.includes("[task:handoff]"),
 );
+suite.ok("digest renders task context packet", () =>
+  run(task, ["digest", first]).stdout.includes("[task:digest]"),
+);
 suite.ok("wrapper delegates positional priority to engine CLI", () =>
   readFileSync(calls, "utf8").includes("task new test task title P0\n"),
 );
@@ -159,6 +170,9 @@ suite.ok("wrapper delegates split log words to engine CLI", () =>
 );
 suite.ok("wrapper delegates handoff to engine CLI", () =>
   /^task handoff /mu.test(readFileSync(calls, "utf8")),
+);
+suite.ok("wrapper delegates digest to engine CLI", () =>
+  /^task digest /mu.test(readFileSync(calls, "utf8")),
 );
 
 suite.done();

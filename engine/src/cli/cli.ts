@@ -36,6 +36,7 @@ import { SkillsCommand } from './commands/skills.js';
 import { SmokeCommand } from './commands/smoke.js';
 import { SummaryCommand } from './commands/summary.js';
 import {
+  TaskDigestCommand,
   TaskDoneCommand,
   TaskHandoffCommand,
   TaskLogCommand,
@@ -81,6 +82,7 @@ export const buildCli = (): Cli => {
   cli.register(TaskLogCommand);
   cli.register(TaskDoneCommand);
   cli.register(TaskHandoffCommand);
+  cli.register(TaskDigestCommand);
   cli.register(GoalTemplateCommand);
   cli.register(GoalShowCommand);
   cli.register(GoalCheckCommand);

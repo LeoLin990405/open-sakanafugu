@@ -573,6 +573,69 @@ describe('fugue CLI', () => {
       expect(result.code).toBe(1);
       expect(result.err).toContain('requires DONE status');
     });
+
+    it('renders task context digest cards as markdown and JSON', async () => {
+      const file = join(dir, 'TASK-digest.md');
+      const content = [
+        '# TASK-digest: Context card',
+        'Status: IN_PROGRESS',
+        '',
+        '## Requirements',
+        '- Preserve task constraints.',
+        '- Keep recent evidence.',
+        '',
+        '## Subtasks',
+        '- [x] Research papers',
+        '- [ ] Implement digest',
+        '',
+        '## Output files',
+        '- engine/src/domain/task-context-digest.ts',
+        '',
+        '## Log',
+        '- [2026-06-29 11:20] Old evidence.',
+        '- [2026-06-29 11:21] New evidence.',
+      ].join('\n');
+      await writeFile(file, content, 'utf8');
+
+      const markdown = await run(['task', 'digest', file, '--tail', '1', '--budget-chars', '1200']);
+      const json = await run(['task', 'digest', file, '--json', '--tail', '1']);
+      const packet = JSON.parse(json.out) as {
+        readonly taskId: string;
+        readonly sourceSha256: string;
+        readonly units: readonly { readonly kind: string; readonly text: string }[];
+      };
+
+      expect(markdown.code).toBe(0);
+      expect(markdown.out).toContain('[task:digest] TASK-digest: Context card');
+      expect(markdown.out).toContain('- requirement: Preserve task constraints.');
+      expect(markdown.out).toContain('- open-subtask: Implement digest');
+      expect(markdown.out).toContain('- recent-evidence 2026-06-29 11:21: New evidence.');
+      expect(markdown.out).not.toContain('Old evidence.');
+      expect(json.code).toBe(0);
+      expect(packet.taskId).toBe('TASK-digest');
+      expect(packet.sourceSha256).toBe(createHash('sha256').update(content).digest('hex'));
+      expect(packet.units.some((unit) => unit.kind === 'handoff-object')).toBe(true);
+    });
+
+    it('rejects invalid task digest budgets', async () => {
+      const created = await run(['task', 'new', 'bad digest budget']);
+      const file = created.out.trim();
+
+      const result = await run(['task', 'digest', file, '--budget-chars', '0']);
+
+      expect(result.code).toBe(1);
+      expect(result.err).toContain('expected a positive integer');
+    });
+
+    it('rejects task digest budgets that cannot fit required metadata', async () => {
+      const created = await run(['task', 'new', 'tiny digest budget']);
+      const file = created.out.trim();
+
+      const result = await run(['task', 'digest', file, '--budget-chars', '10']);
+
+      expect(result.code).toBe(1);
+      expect(result.err).toContain('budget too small for required metadata');
+    });
   });
 
   describe('template rendering', () => {

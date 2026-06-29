@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Runtime-Node%20%E2%89%A518.18-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js >= 18.18" />
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-25%20%E5%A5%97%E6%B5%8B%E8%AF%95-7c3aed?style=for-the-badge" alt="25 套 fuguectl 测试" />
-  <img src="https://img.shields.io/badge/assertions-351-brightgreen?style=for-the-badge" alt="351 个 fuguectl 断言" />
+  <img src="https://img.shields.io/badge/assertions-355-brightgreen?style=for-the-badge" alt="355 个 fuguectl 断言" />
   <a href="https://github.com/BicaMindLabs/FuguNano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/FuguNano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
@@ -162,7 +162,7 @@ stdout 或 durable artifact。`task new` 使用独占创建避免并发 operator
 | 区域                   | 命令                                                                                                                                                                                                                                                                                                                   |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Setup and recon        | `fuguectl doctor`、`fuguectl init --dry-run\|--write`、`fuguectl version`、`fuguectl preflight --harness fugue-cc\|codex\|opencode\|agy\|lite\|all`、`fuguectl smoke`、`fuguectl fleet status\|up\|down`                                                                                                               |
-| Planning               | `fuguectl task new\|log\|done\|handoff`、`fuguectl template <name>`、`fuguectl plan "<goal>" [--harness h\|lite] [--models a,b] [--out <dir>] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task f]`、`fuguectl goal template\|show\|check` |
+| Planning               | `fuguectl task new\|log\|done\|handoff\|digest`、`fuguectl template <name>`、`fuguectl plan "<goal>" [--harness h\|lite] [--models a,b] [--out <dir>] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task f]`、`fuguectl goal template\|show\|check` |
 | Routing and context    | `fuguectl allocate <type>`、`fuguectl workspace list\|show\|model\|context`、`fuguectl agents template\|validate\|list\|resolve`、`fuguectl skills index\|list\|match\|show\|inject\|validate\|forge`                                                                                                                  |
 | Dispatch and gather    | `fuguectl dispatch <target> [--certificate <file>]`、`fuguectl cache init\|put\|fail\|barrier\|collect\|resume`                                                                                                                                                                                                         |
 | Integration and loop   | `fuguectl integrate --work <repo>`、`fuguectl loop init\|record\|decide\|status`、`fuguectl run set\|round\|status\|next\|clear`、`fuguectl summary <round>`                                                                                                                                                           |
@@ -181,6 +181,20 @@ fuguectl task handoff ~/.claude/tasks/TASK-2026-06-29-023.md --require-done
 ```
 
 这不是模型总结，也不会修改 TASK。适合在 review、交给另一个 agent、或 `experience learn` 之前，把“验收条件 / 输出物 / 证据 / provenance”用紧凑格式先交清楚。
+
+## TASK 上下文 Digest
+
+长 TASK 日志适合作为证据，但不适合原样塞进 prompt。最近 agent
+上下文管理论文里的共同结论很工程化：原始任务约束不能丢，当前进度和近期证据要保留，过旧 trace
+应该在显式预算下压缩或省略。`task digest` 是 FuguNano 对这个方向的确定性版本：它把 goal/status、Requirements、未完成 Subtasks、Output files 和最近 Log evidence 渲染成有界 context card，同时带 `sourceRef`、`sourceSha256` 和 `sourceChars`，让被省略的原始历史仍然可审计。
+
+```bash
+fuguectl task digest ~/.claude/tasks/TASK-2026-06-29-028.md
+fuguectl task digest ~/.claude/tasks/TASK-2026-06-29-028.md --budget-chars 1600 --tail 4
+fuguectl task digest ~/.claude/tasks/TASK-2026-06-29-028.md --json
+```
+
+这不是 LLM 总结，也不会改写 TASK。它按稳定优先级选择完整 context unit，并记录省略了多少 unit/字符。适合在 implementer、reviewer 或 planner 需要“当前最重要的信息”时使用，而不是把整段 trace 重放进上下文。
 
 ## Dispatch 动作证书
 
@@ -306,7 +320,7 @@ fugue skills index|list|match|show|inject|validate|forge
 fugue preflight [--harness fugue-cc|codex|opencode|agy|lite|all] [--model provider/model|--target provider/model] [--config-only] [provider.config]
 fugue cache init|put|fail|status|barrier|collect|list|resume --cache <dir>
 fugue plan "<goal>" --harness fugue-cc|codex|opencode|agy|lite --out <dir> [--models m1,m2] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task <file>]
-fugue task new|log|done|handoff [handoff: --json --tail n --require-done]
+fugue task new|log|done|handoff|digest [handoff: --json --tail n --require-done] [digest: --json --tail n --budget-chars n]
 fugue template <name> --dir <templates> [--set KEY=VALUE ...]
 fugue workspace list|show|model|context [context: --experience-source manual|task --experience-source-ref ref --experience-limit n --experience-budget-chars n --experience-trust trusted|all --experience-max-age-days n]
 fugue experience add|list|show --store <dir> [add: --trust trusted|untrusted --source-ref ref --supersedes slug]
@@ -435,6 +449,7 @@ npm run test:engine
 - 上海人工智能实验室的 [Self-Harness 论文](https://arxiv.org/abs/2606.09498) 启发了 `fuguectl self-harness` 的 harness-improvement loop。
 - [Proof-Carrying Agent Actions](https://arxiv.org/abs/2606.04104) 支撑了 `dispatch --certificate` 背后的 runtime-neutral action certificate 与 checkpoint 设计。
 - [Agentic Electronic Design Automation: A Handoff Perspective](https://arxiv.org/abs/2606.19795) 与 [HarnessFix](https://arxiv.org/abs/2606.06324) 支撑了 `task handoff` 交接包背后的 handoff validity 与 trace-to-harness-flaw 思路。
+- [Less Context, Better Agents](https://arxiv.org/abs/2606.10209)、[Active Context Compression](https://arxiv.org/abs/2601.07190)、[ContextBudget](https://arxiv.org/abs/2604.01664) 与 [AdaCoM](https://arxiv.org/abs/2605.30785) 支撑了 `task digest` 背后的有界、带 source hash 的上下文卡片设计。
 - [Agent Workflow Memory](https://arxiv.org/abs/2409.07429)、[AgentHER](https://arxiv.org/abs/2603.21357)、[MemRL](https://arxiv.org/abs/2601.03192)、[How Memory Management Impacts LLM Agents](https://arxiv.org/abs/2505.16067)、[Agent-Native Memory Systems](https://arxiv.org/abs/2606.24775)、[STALE](https://arxiv.org/abs/2605.06527)、[Governing Evolving Memory in LLM Agents](https://arxiv.org/abs/2603.11768)、[Agent Memory: Characterization and System Implications](https://arxiv.org/abs/2606.06448)、[MemMachine](https://arxiv.org/abs/2604.04853)、[RCR-Router](https://arxiv.org/abs/2508.04903)、[BudgetMem](https://arxiv.org/abs/2602.06025)、[Token Economics for LLM Agents](https://arxiv.org/abs/2605.09104)、[Graph Memory for LLM Agents](https://arxiv.org/abs/2606.06036)、[Externalization in LLM Agents](https://arxiv.org/abs/2604.08224)、[Cost-Sensitive Store Routing](https://arxiv.org/abs/2603.15658)、[Compute Allocation for Reasoning-Intensive Retrieval Agents](https://openreview.net/forum?id=nqr4eTODKl) 和 [RecoAtlas](https://arxiv.org/abs/2605.18805) 启发了 stale-aware、按失败原因过滤、来源可见、预算可控、可解释、带效用门控的 experience replay。
 - [Traversal-as-Policy](https://arxiv.org/abs/2603.05517)、[From Agent Traces to Trust](https://arxiv.org/abs/2606.04990)、[PROV-AGENT](https://arxiv.org/abs/2508.02866)、[LLM Agents for Interactive Workflow Provenance](https://arxiv.org/abs/2509.13978)、[Distilling Feedback into Memory-as-a-Tool](https://arxiv.org/abs/2601.05960) 与 [Structured Belief State](https://arxiv.org/abs/2605.11325) 支撑了 provenance-bearing injected memory、`experience policy` 和 `experience recall --json` 背后的 evidence tracing、workflow provenance、policy card 与 retrieval precision 设计。
 - [MemoryAgentBench](https://openreview.net/forum?id=DT7JyQC3MR) 与 [StructMemEval](https://arxiv.org/abs/2602.11243) 把 memory 当作独立能力评估，支撑了 `experience eval` 这种直接跑 recall cases 的本地 benchmark。

@@ -40,6 +40,9 @@ writeFileSync(resultFile, "r\n");
 
 const helpOut = run(fuguectl, ["help"]).stdout;
 suite.ok("help lists subcommands", () => helpOut.includes("fuguectl doctor"));
+suite.ok("help lists task digest", () =>
+  helpOut.includes("fuguectl task new|log|done|handoff|digest"),
+);
 suite.ok("help lists lite preflight harness", () =>
   helpOut.includes("fugue-cc|codex|opencode|agy|lite|all"),
 );

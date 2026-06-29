@@ -1,6 +1,9 @@
+import { createHash } from 'node:crypto';
+
 import { Command, Option, UsageError } from 'clipanion';
 
 import { FsTaskStore } from '../../adapters/task/fs-task-store.js';
+import { renderTaskContextDigest, taskContextDigest } from '../../domain/task-context-digest.js';
 import { renderTaskHandoffPacket, taskHandoffPacket } from '../../domain/task-handoff.js';
 import type { TaskPriority } from '../../domain/task-file.js';
 import { systemClock } from '../../infra/clock.js';
@@ -65,6 +68,14 @@ const parseTail = (raw: string): number | null => {
   return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 };
 
+const parseBudgetChars = (raw: string): number | null => {
+  if (!/^\d+$/u.test(raw)) return null;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const sha256 = (value: string): string => createHash('sha256').update(value).digest('hex');
+
 /** `fugue task handoff <path>` — render a provenance-bearing handoff packet. */
 export class TaskHandoffCommand extends Command {
   static override paths = [['task', 'handoff']];
@@ -96,6 +107,49 @@ export class TaskHandoffCommand extends Command {
     this.context.stdout.write(
       this.json ? `${JSON.stringify(packet, null, 2)}\n` : renderTaskHandoffPacket(packet),
     );
+    return 0;
+  }
+}
+
+/** `fugue task digest <path>` — render a bounded context card for prompts. */
+export class TaskDigestCommand extends Command {
+  static override paths = [['task', 'digest']];
+
+  file = Option.String();
+  tail = Option.String('--tail', '6');
+  budgetChars = Option.String('--budget-chars', '2400');
+  json = Option.Boolean('--json', false);
+
+  override async execute(): Promise<number> {
+    const maxEvidence = parseTail(this.tail);
+    if (maxEvidence === null) {
+      this.context.stderr.write('unknown --tail; expected a non-negative integer\n');
+      return 1;
+    }
+    const budgetChars = parseBudgetChars(this.budgetChars);
+    if (budgetChars === null) {
+      this.context.stderr.write('unknown --budget-chars; expected a positive integer\n');
+      return 1;
+    }
+    const content = await fs().read(this.file);
+    if (content === null) {
+      this.context.stderr.write(`no task file ${this.file}\n`);
+      return 1;
+    }
+    const digest = taskContextDigest(content, {
+      sourceRef: this.file,
+      sourceSha256: sha256(content),
+      budgetChars,
+      maxEvidence,
+    });
+    const rendered = this.json ? `${JSON.stringify(digest)}\n` : renderTaskContextDigest(digest);
+    if (rendered.length > budgetChars) {
+      this.context.stderr.write(
+        `task digest budget too small for required metadata; need at least ${String(rendered.length)} chars\n`,
+      );
+      return 1;
+    }
+    this.context.stdout.write(rendered);
     return 0;
   }
 }

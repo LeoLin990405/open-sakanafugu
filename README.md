@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Runtime-Node%20%E2%89%A518.18-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js >= 18.18" />
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-25%20suites-7c3aed?style=for-the-badge" alt="25 fuguectl test suites" />
-  <img src="https://img.shields.io/badge/assertions-351-brightgreen?style=for-the-badge" alt="351 fuguectl assertions" />
+  <img src="https://img.shields.io/badge/assertions-355-brightgreen?style=for-the-badge" alt="355 fuguectl assertions" />
   <a href="https://github.com/BicaMindLabs/FuguNano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/FuguNano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
@@ -190,7 +190,7 @@ so final status updates do not clobber concurrent audit lines.
 | Area                   | Commands                                                                                                                                                                                                                                                                                                               |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Setup and recon        | `fuguectl doctor`, `fuguectl init --dry-run\|--write`, `fuguectl version`, `fuguectl preflight --harness fugue-cc\|codex\|opencode\|agy\|lite\|all`, `fuguectl smoke`, `fuguectl fleet status\|up\|down`                                                                                                               |
-| Planning               | `fuguectl task new\|log\|done\|handoff`, `fuguectl template <name>`, `fuguectl plan "<goal>" [--harness h\|lite] [--models a,b] [--out <dir>] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task f]`, `fuguectl goal template\|show\|check` |
+| Planning               | `fuguectl task new\|log\|done\|handoff\|digest`, `fuguectl template <name>`, `fuguectl plan "<goal>" [--harness h\|lite] [--models a,b] [--out <dir>] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task f]`, `fuguectl goal template\|show\|check` |
 | Routing and context    | `fuguectl allocate <type>`, `fuguectl workspace list\|show\|model\|context`, `fuguectl agents template\|validate\|list\|resolve`, `fuguectl skills index\|list\|match\|show\|inject\|validate\|forge`                                                                                                                  |
 | Dispatch and gather    | `fuguectl dispatch <target> [--certificate <file>]`, `fuguectl cache init\|put\|fail\|barrier\|collect\|resume`                                                                                                                                                                                                         |
 | Integration and loop   | `fuguectl integrate --work <repo>`, `fuguectl loop init\|record\|decide\|status`, `fuguectl run set\|round\|status\|next\|clear`, `fuguectl summary <round>`                                                                                                                                                           |
@@ -216,6 +216,26 @@ fuguectl task handoff ~/.claude/tasks/TASK-2026-06-29-023.md --require-done
 This is not a model summary and does not mutate the TASK. Use it before review,
 handoff to another agent, or `experience learn` when the consumer needs a compact
 acceptance/evidence view rather than a whole task log.
+
+## Task Context Digests
+
+Long TASK logs are useful evidence, but they are poor prompt material. Recent
+agent context-management work points to a practical rule: keep the original task
+constraints, preserve current progress, and compress or omit stale trace under
+an explicit budget. `task digest` is FuguNano's deterministic version of that
+rule. It renders bounded context cards with goal/status, Requirements,
+unfinished subtasks, Output files, and recent Log evidence, plus `sourceRef`,
+`sourceSha256`, and `sourceChars` so omitted history remains auditable.
+
+```bash
+fuguectl task digest ~/.claude/tasks/TASK-2026-06-29-028.md
+fuguectl task digest ~/.claude/tasks/TASK-2026-06-29-028.md --budget-chars 1600 --tail 4
+fuguectl task digest ~/.claude/tasks/TASK-2026-06-29-028.md --json
+```
+
+This is not an LLM summary. It selects whole context units in a stable priority
+order and records how many units/chars were omitted. Use it when an implementer,
+reviewer, or planner needs "what matters now" without replaying the whole trace.
 
 ## Dispatch Action Certificates
 
@@ -468,7 +488,7 @@ fugue skills index|list|match|show|inject|validate|forge
 fugue preflight [--harness fugue-cc|codex|opencode|agy|lite|all] [--model provider/model|--target provider/model] [--config-only] [provider.config]
 fugue cache init|put|fail|status|barrier|collect|list|resume --cache <dir>
 fugue plan "<goal>" --harness fugue-cc|codex|opencode|agy|lite --out <dir> [--models m1,m2] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task <file>]
-fugue task new|log|done|handoff [handoff: --json --tail n --require-done]
+fugue task new|log|done|handoff|digest [handoff: --json --tail n --require-done] [digest: --json --tail n --budget-chars n]
 fugue template <name> --dir <templates> [--set KEY=VALUE ...]
 fugue workspace list|show|model|context [context: --experience-source manual|task --experience-source-ref ref --experience-limit n --experience-budget-chars n --experience-trust trusted|all --experience-max-age-days n]
 fugue experience add|list|show --store <dir> [add: --trust trusted|untrusted --source-ref ref --supersedes slug]
@@ -620,6 +640,7 @@ GitHub Security Advisory.
 - Shanghai Artificial Intelligence Laboratory's [Self-Harness paper](https://arxiv.org/abs/2606.09498) for the harness-improvement loop that inspired `fuguectl self-harness`.
 - [Proof-Carrying Agent Actions](https://arxiv.org/abs/2606.04104) for the runtime-neutral action certificate and checkpoint framing behind `dispatch --certificate`.
 - [Agentic Electronic Design Automation: A Handoff Perspective](https://arxiv.org/abs/2606.19795) and [HarnessFix](https://arxiv.org/abs/2606.06324) for the handoff-validity and trace-to-harness-flaw framing behind `task handoff` packets.
+- [Less Context, Better Agents](https://arxiv.org/abs/2606.10209), [Active Context Compression](https://arxiv.org/abs/2601.07190), [ContextBudget](https://arxiv.org/abs/2604.01664), and [AdaCoM](https://arxiv.org/abs/2605.30785) for the bounded, source-hashed context-card design behind `task digest`.
 - [Agent Workflow Memory](https://arxiv.org/abs/2409.07429), [AgentHER](https://arxiv.org/abs/2603.21357), [MemRL](https://arxiv.org/abs/2601.03192), [How Memory Management Impacts LLM Agents](https://arxiv.org/abs/2505.16067), [Agent-Native Memory Systems](https://arxiv.org/abs/2606.24775), [STALE](https://arxiv.org/abs/2605.06527), [Governing Evolving Memory in LLM Agents](https://arxiv.org/abs/2603.11768), [Agent Memory: Characterization and System Implications](https://arxiv.org/abs/2606.06448), [MemMachine](https://arxiv.org/abs/2604.04853), [RCR-Router](https://arxiv.org/abs/2508.04903), [BudgetMem](https://arxiv.org/abs/2602.06025), [Token Economics for LLM Agents](https://arxiv.org/abs/2605.09104), [Graph Memory for LLM Agents](https://arxiv.org/abs/2606.06036), [Externalization in LLM Agents](https://arxiv.org/abs/2604.08224), [Cost-Sensitive Store Routing](https://arxiv.org/abs/2603.15658), [Compute Allocation for Reasoning-Intensive Retrieval Agents](https://openreview.net/forum?id=nqr4eTODKl), and [RecoAtlas](https://arxiv.org/abs/2605.18805) for the stale-aware, cause-aware, provenance-visible, budgeted, explainable, utility-gated experience replay direction.
 - [Traversal-as-Policy](https://arxiv.org/abs/2603.05517), [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990), [PROV-AGENT](https://arxiv.org/abs/2508.02866), [LLM Agents for Interactive Workflow Provenance](https://arxiv.org/abs/2509.13978), [Distilling Feedback into Memory-as-a-Tool](https://arxiv.org/abs/2601.05960), and [Structured Belief State](https://arxiv.org/abs/2605.11325) for the evidence-tracing, workflow-provenance, policy-card, and retrieval-precision framing behind provenance-bearing injected memory, `experience policy`, and `experience recall --json`.
 - [MemoryAgentBench](https://openreview.net/forum?id=DT7JyQC3MR) and [StructMemEval](https://arxiv.org/abs/2602.11243) for treating memory as a separately evaluated capability, which motivates `experience eval` cases over raw recall results.

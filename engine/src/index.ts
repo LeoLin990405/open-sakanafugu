@@ -79,6 +79,18 @@ export {
   isActionApprovalClass,
 } from './domain/action-certificate.js';
 export type {
+  TaskContextDigest,
+  TaskContextDigestOmitted,
+  TaskContextDigestOptions,
+  TaskContextDigestUnit,
+  TaskContextDigestUnitKind,
+} from './domain/task-context-digest.js';
+export {
+  TASK_CONTEXT_DIGEST_SCHEMA_VERSION,
+  renderTaskContextDigest,
+  taskContextDigest,
+} from './domain/task-context-digest.js';
+export type {
   DispatchRequest,
   DispatchResult,
   DispatchError,
