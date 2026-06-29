@@ -9,8 +9,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Runtime-Node%20%E2%89%A518.18-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js >= 18.18" />
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
-  <img src="https://img.shields.io/badge/fuguectl-26%20suites-7c3aed?style=for-the-badge" alt="26 fuguectl test suites" />
-  <img src="https://img.shields.io/badge/assertions-360-brightgreen?style=for-the-badge" alt="360 fuguectl assertions" />
+  <img src="https://img.shields.io/badge/fuguectl-27%20suites-7c3aed?style=for-the-badge" alt="27 fuguectl test suites" />
+  <img src="https://img.shields.io/badge/assertions-365-brightgreen?style=for-the-badge" alt="365 fuguectl assertions" />
   <a href="https://github.com/BicaMindLabs/FuguNano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/FuguNano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
@@ -38,8 +38,9 @@
 
 ## Highlights
 
-- **One operator surface** - `fuguectl` drives preflight, dispatch, cache,
-  integration, review, loop state, routing, skills, and runtime maintenance.
+- **One operator surface** - `fuguectl` drives preflight, prompt guarding,
+  dispatch, cache, integration, review, loop state, routing, skills, and
+  runtime maintenance.
 - **Runtime-neutral agents** - logical agent profiles route work to Claude Code
   provider instances, Codex models, OpenCode providers, or future harnesses
   without changing the loop.
@@ -52,6 +53,9 @@
   configured independent reviewer returns `ACCEPTED` or `NEEDS FIX`.
 - **Structured review packets** - reviewer text can be parsed into
   provenance-bearing findings, rubrics, evidence anchors, and follow-up checks.
+- **Runtime guard packets** - prompts can be checked before dispatch for
+  untrusted input, prompt-injection language, destructive actions, missing
+  approval, and missing action-certificate evidence.
 - **No lost outputs** - dispatch can persist reviewer/agent output with `--out`,
   and the join barrier still enforces N sent, N returned.
 - **Bounded repair** - keep-best, confirmation passes, user escalation, and
@@ -132,6 +136,7 @@ fuguectl preflight --harness lite         # all lite runtimes: codex + opencode 
 fuguectl preflight --harness fugue-cc     # full worktree fleet path
 fuguectl task new "implement feature"
 fuguectl plan "implement feature" --harness lite --codex-clean --allow-partial --out /tmp/fugunano-plan --task TASK.md
+fuguectl guard prompt /tmp/fugunano-impl-prompt.md --source-ref TASK.md
 fuguectl dispatch cc-deepseek --template impl --task TASK.md --task-type backend
 fuguectl cache barrier <round>
 fuguectl integrate --work /path/to/project --agents "cc-deepseek cc-kimi"
@@ -142,6 +147,7 @@ fuguectl loop decide
 | Phase     | What FuguNano does                                                                      |
 | --------- | --------------------------------------------------------------------------------------- |
 | Plan      | Run preflight, create a TASK file, split ownership, and pick workers.                   |
+| Guard     | Inspect high-risk prompts before dispatch and block prompt-injection/destructive cases. |
 | Dispatch  | Send scoped prompts through `fuguectl dispatch`.                                        |
 | Gather    | Cache every terminal result and wait at the join barrier.                               |
 | Integrate | Cherry-pick reviewed worktrees onto `main`; isolate conflicts and ownership violations. |
@@ -187,14 +193,14 @@ so final status updates do not clobber concurrent audit lines.
 ## Command Surface
 
 `orchestration/fuguectl/fuguectl` is the production operator entry point. It has
-25 subcommands and 26 test suites.
+26 subcommands and 27 test suites.
 
 | Area                   | Commands                                                                                                                                                                                                                                                                                                                       |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Setup and recon        | `fuguectl doctor`, `fuguectl init --dry-run\|--write`, `fuguectl version`, `fuguectl preflight --harness fugue-cc\|codex\|opencode\|agy\|lite\|all`, `fuguectl smoke`, `fuguectl fleet status\|up\|down`                                                                                                                       |
 | Planning               | `fuguectl task new\|log\|done\|handoff\|digest`, `fuguectl template <name>`, `fuguectl plan "<goal>" [--harness h\|lite] [--models a,b] [--out <dir>] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task f]`, `fuguectl goal template\|show\|check` |
 | Routing and context    | `fuguectl allocate <type>`, `fuguectl workspace list\|show\|model\|context`, `fuguectl agents template\|validate\|list\|resolve`, `fuguectl skills index\|list\|match\|show\|inject\|validate\|forge`                                                                                                                          |
-| Dispatch and gather    | `fuguectl dispatch <target> [--certificate <file>]`, `fuguectl cache init\|put\|fail\|barrier\|collect\|resume`                                                                                                                                                                                                                |
+| Dispatch and gather    | `fuguectl guard prompt <file\|->`, `fuguectl dispatch <target> [--certificate <file>]`, `fuguectl cache init\|put\|fail\|barrier\|collect\|resume`                                                                                                                                                                             |
 | Integration and loop   | `fuguectl integrate --work <repo>`, `fuguectl review packet <file\|->`, `fuguectl loop init\|record\|decide\|status`, `fuguectl run set\|round\|status\|next\|clear`, `fuguectl summary <round>`                                                                                                                               |
 | Memory and maintenance | `fuguectl experience add\|audit\|eval\|learn\|list\|policy\|promote\|recall\|show`, `fuguectl self-harness template\|run`, `fuguectl runtime check\|adapt` (provider + installed workflow bundle drift), `fuguectl selftest`                                                                                                   |
 
@@ -261,6 +267,30 @@ quality issues such as missing verdicts or findings without file evidence. Use
 them after an independent review and before the bounded review-fix loop, so the
 fixer has a compact checklist and the TASK audit can retain machine-readable
 review provenance.
+
+## Runtime Guard Packets
+
+AgentSpec makes runtime safety explicit with rules; AgentVisor separates the
+trusted visor from the untrusted agent; CaMeL keeps untrusted data from steering
+trusted control flow. `guard prompt` is FuguNano's local, deterministic version
+for the moment before dispatch. It reads a prompt, records `sourceRef`,
+`sourceSha256`, and `sourceChars`, and emits an `ALLOW` / `REVIEW` / `BLOCK`
+packet with line evidence and recommended checks. `BLOCK` exits non-zero so it
+can be used as a pre-dispatch gate.
+
+```bash
+fuguectl guard prompt /tmp/fugunano-impl-prompt.md --source-ref TASK.md
+fuguectl guard prompt /tmp/fugunano-impl-prompt.md --json
+cat /tmp/prompt.md | fuguectl guard prompt - --source-ref https://example.invalid/issue/7
+```
+
+The guard is deliberately not an LLM judge. It scans for prompt-injection
+language, external/untrusted data mixed with privileged action, destructive
+commands without approval, likely secret exfiltration, missing source
+provenance, and missing action-certificate markers for high-value runtime
+actions. Use it before `dispatch` when a prompt contains browser/email/GitHub
+material, deployment instructions, destructive shell commands, or secrets-adjacent
+operations.
 
 ## Dispatch Action Certificates
 
@@ -665,6 +695,7 @@ GitHub Security Advisory.
 - [SeemSeam/claude_codex_bridge](https://github.com/SeemSeam/claude_codex_bridge) as a reference for the provider-runtime bridge.
 - Shanghai Artificial Intelligence Laboratory's [Self-Harness paper](https://arxiv.org/abs/2606.09498) for the harness-improvement loop that inspired `fuguectl self-harness`.
 - [Proof-Carrying Agent Actions](https://arxiv.org/abs/2606.04104) for the runtime-neutral action certificate and checkpoint framing behind `dispatch --certificate`.
+- [AgentSpec](https://arxiv.org/abs/2503.18666), [AgentVisor](https://arxiv.org/abs/2604.24118), and [CaMeL / Defeating Prompt Injections by Design](https://arxiv.org/abs/2503.18813) for the runtime-rule, semantic privilege separation, and trusted-control/untrusted-data split behind `guard prompt`.
 - [Agentic Electronic Design Automation: A Handoff Perspective](https://arxiv.org/abs/2606.19795) and [HarnessFix](https://arxiv.org/abs/2606.06324) for the handoff-validity and trace-to-harness-flaw framing behind `task handoff` packets.
 - [Less Context, Better Agents](https://arxiv.org/abs/2606.10209), [Active Context Compression](https://arxiv.org/abs/2601.07190), [ContextBudget](https://arxiv.org/abs/2604.01664), and [AdaCoM](https://arxiv.org/abs/2605.30785) for the bounded, source-hashed context-card design behind `task digest`.
 - [Code Review Agent Benchmark](https://arxiv.org/abs/2603.23448), [DeepVerifier](https://arxiv.org/abs/2601.15808), and [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990) for the review-as-verifiable-feedback, rubric-guided, and evidence-provenance framing behind `review packet`.

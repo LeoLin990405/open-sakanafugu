@@ -89,6 +89,7 @@ fuguectl experience recall code --query "dispatch output" --min-score 2 --json #
 fuguectl experience policy code dispatch-observability-retro # exact memory -> provenance-bearing policy checklist
 fuguectl experience policy code --query "dispatch output" --json # recalled memories -> machine-readable policy cards
 fuguectl task handoff ~/.claude/tasks/TASK-2026-06-29-023.md --json --tail 8 --require-done # compact acceptance/object/evidence packet for the next reviewer/agent
+fuguectl guard prompt /tmp/fugunano-impl-prompt.md --source-ref ~/.claude/tasks/TASK-2026-06-29-023.md # pre-dispatch runtime guard packet for high-risk prompts
 fuguectl dispatch gpt-5.5 --harness codex --prompt "review this diff" --certificate /tmp/review.cert.json --approval-class operator-reviewed --certificate-assumption "reviewer is independent" # action-level proof sidecar with five checkpoints
 fuguectl experience recall code --query "dispatch output" --min-score 2 --json --metadata-only # shareable audit: metadata + body hash, no raw memory body
 fuguectl experience eval code --cases recall-cases.jsonl --json # precision/recall/F1/MRR over expected recall slugs, no downstream LLM answer involved

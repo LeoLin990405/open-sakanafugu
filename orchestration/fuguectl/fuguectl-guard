@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+import { runSubcommandBridge } from "./fuguectl-node-bridge.mjs";
+
+runSubcommandBridge({
+  argv: process.argv.slice(2),
+  command: "guard",
+  allowed: ["prompt"],
+  help: `fuguectl-guard — TypeScript runtime guard commands bridge
+
+prompt <prompt-file|-> [--json] [--source-ref ref]
+`,
+  unknown: (subcommand) =>
+    `fuguectl-guard: unknown subcommand '${subcommand}' (prompt)`,
+});

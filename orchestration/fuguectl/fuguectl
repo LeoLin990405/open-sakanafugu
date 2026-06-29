@@ -16,6 +16,7 @@ const help = `fuguectl — fugue workflow control-plane entrypoint.
   fuguectl preflight [--harness fugue-cc|codex|opencode|agy|lite|all] [--model m|--target m] [cfg]  pre-run go/no-go gate
   fuguectl smoke [--harness all|codex|opencode|agy] [--timeout-ms n] [--task <file>] [--out-dir <dir>]  live lite-runtime smoke (+ <out-dir>/summary.json)
   fuguectl task new|log|done|handoff|digest   TASK file scaffold/log/finalize/handoff/digest packet
+  fuguectl guard prompt <file|-> [--json] [--source-ref ref]  pre-dispatch runtime guard packet
   fuguectl review packet <file|-> [--json]  parse reviewer output into a structured review-fix packet
   fuguectl template <n> [--set K=V]   render prompt template
   fuguectl dispatch <agent> [--harness fugue-cc|codex|opencode|agy] [--timeout-ms n] [--codex-clean] [--harness-arg x] [--out <file>] [--certificate <file> [--approval-class class] [--certificate-assumption text] [--certificate-externality fact]] [--require-output] [--verbose] [--workspace ws [--experience-query q] [--experience-source manual|task] [--experience-source-ref ref] [--experience-limit n] [--experience-budget-chars n] [--experience-trust trusted|all] [--experience-max-age-days n]] --template <n>|--prompt-file <f>|--prompt <text> [--task <file>]
@@ -79,6 +80,7 @@ const commandMap = new Map([
   ["smoke", "smoke"],
   ["fleet", "fleet"],
   ["task", "task"],
+  ["guard", "guard"],
   ["review", "review"],
   ["template", "template"],
   ["dispatch", "dispatch"],
@@ -115,7 +117,7 @@ if (subcommand === "help" || subcommand === "-h" || subcommand === "--help") {
   runEngine([commandMap.get(subcommand), ...rest]);
 } else {
   console.error(
-    `fuguectl: unknown subcommand '${subcommand}' (doctor|init|version|fleet|preflight|smoke|task|review|template|dispatch|cache|integrate|allocate|skills|workspace|agents|experience|plan|goal|loop|run|summary|self-harness|runtime|selftest|help)`,
+    `fuguectl: unknown subcommand '${subcommand}' (doctor|init|version|fleet|preflight|smoke|task|guard|review|template|dispatch|cache|integrate|allocate|skills|workspace|agents|experience|plan|goal|loop|run|summary|self-harness|runtime|selftest|help)`,
   );
   console.error("try: fuguectl help or fuguectl help quickstart");
   process.exit(2);

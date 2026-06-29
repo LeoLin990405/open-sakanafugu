@@ -23,6 +23,7 @@ import {
   ExperienceShowCommand,
 } from './commands/experience.js';
 import { FleetCommand } from './commands/fleet.js';
+import { GuardPromptCommand } from './commands/guard.js';
 import { GoalCheckCommand, GoalShowCommand, GoalTemplateCommand } from './commands/goal.js';
 import { InitCommand } from './commands/init.js';
 import { IntegrateCommand } from './commands/integrate.js';
@@ -70,6 +71,7 @@ export const buildCli = (): Cli => {
   cli.register(AllocateCommand);
   cli.register(DispatchCommand);
   cli.register(FleetCommand);
+  cli.register(GuardPromptCommand);
   cli.register(ExperienceAddCommand);
   cli.register(ExperienceAuditCommand);
   cli.register(ExperienceEvalCommand);

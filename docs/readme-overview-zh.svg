@@ -126,8 +126,8 @@
     stroke="#475569"
   />
   <text x="812" y="124" class="chip">fuguectl</text>
-  <text x="812" y="151" class="cardText">25 个子命令</text>
-  <text x="812" y="174" class="cardText">26 套测试 · 360 个断言</text>
+  <text x="812" y="151" class="cardText">26 个子命令</text>
+  <text x="812" y="174" class="cardText">27 套测试 · 365 个断言</text>
 
   <rect
     x="78"

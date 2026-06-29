@@ -106,6 +106,22 @@ export {
   reviewPacket,
 } from './domain/review-packet.js';
 export type {
+  RuntimeGuardDisposition,
+  RuntimeGuardEvidence,
+  RuntimeGuardFinding,
+  RuntimeGuardFindingKind,
+  RuntimeGuardOptions,
+  RuntimeGuardPacket,
+  RuntimeGuardSeverity,
+} from './domain/runtime-guard.js';
+export {
+  RUNTIME_GUARD_FINDING_KINDS,
+  RUNTIME_GUARD_SCHEMA_VERSION,
+  renderRuntimeGuardPacket,
+  runtimeGuardGate,
+  runtimeGuardPacket,
+} from './domain/runtime-guard.js';
+export type {
   DispatchRequest,
   DispatchResult,
   DispatchError,
