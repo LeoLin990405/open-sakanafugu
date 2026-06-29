@@ -106,6 +106,29 @@ export {
   reviewPacket,
 } from './domain/review-packet.js';
 export type {
+  EvidenceRef,
+  EvolvableSurface,
+  EvolutionFitness,
+  EvolutionLineageEntry,
+  EvolutionPromoter,
+  EvolutionSplitFitness,
+  JsonScalar,
+  JsonValue,
+} from './domain/evolution-lineage.js';
+export {
+  SAFETY_SURFACES,
+  gatePromotion,
+  isSafetySurface,
+  parseEvolutionLineageEntry,
+  renderEvolutionLineageEntry,
+} from './domain/evolution-lineage.js';
+export type {
+  ReviewRubricCase,
+  ReviewRubricSplitCases,
+  RubricEvaluator,
+} from './domain/evolution-rubric.js';
+export { scoreRubric } from './domain/evolution-rubric.js';
+export type {
   IncidentEvidence,
   IncidentHarnessLayer,
   IncidentKind,

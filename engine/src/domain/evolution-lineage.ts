@@ -1,7 +1,7 @@
 import { err, ok } from './result.js';
 import type { Result } from './result.js';
 
-export type EvolvableSurface = 'guard-rule';
+export type EvolvableSurface = 'guard-rule' | 'review-rubric';
 
 export type EvolutionPromoter = 'operator' | 'self-harness' | 'evolve';
 
@@ -94,7 +94,8 @@ const isJsonValue = (value: unknown): value is JsonValue => {
   return Object.values(value).every(isJsonValue);
 };
 
-const isSurface = (value: string): value is EvolvableSurface => value === 'guard-rule';
+const isSurface = (value: string): value is EvolvableSurface =>
+  value === 'guard-rule' || value === 'review-rubric';
 
 const isPromoter = (value: string): value is EvolutionPromoter =>
   value === 'operator' || value === 'self-harness' || value === 'evolve';
@@ -182,7 +183,7 @@ export const parseEvolutionLineageEntry = (text: string): Result<EvolutionLineag
   if (!id.ok) return id;
   const surface = stringField(parsed, 'surface');
   if (!surface.ok) return surface;
-  if (!isSurface(surface.value)) return err('surface must be guard-rule');
+  if (!isSurface(surface.value)) return err('surface must be guard-rule or review-rubric');
   const candidateId = stringField(parsed, 'candidateId');
   if (!candidateId.ok) return candidateId;
   const evidenceRefs = parseEvidenceRefs(parsed.evidenceRefs);

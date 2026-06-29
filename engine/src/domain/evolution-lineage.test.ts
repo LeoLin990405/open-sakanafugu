@@ -61,12 +61,30 @@ describe('evolution lineage', () => {
     const parsed = parseEvolutionLineageEntry(
       JSON.stringify({
         ...entry,
-        surface: 'review-rubric',
+        surface: 'system-prompt',
       }),
     );
 
     expect(isErr(parsed)).toBe(true);
-    if (!parsed.ok) expect(parsed.error).toBe('surface must be guard-rule');
+    if (!parsed.ok) expect(parsed.error).toBe('surface must be guard-rule or review-rubric');
+  });
+
+  it('accepts review-rubric as a non-safety surface', () => {
+    const parsed = parseEvolutionLineageEntry(
+      JSON.stringify({
+        ...entry,
+        surface: 'review-rubric',
+        promotedBy: 'self-harness',
+        rollbackHint: 'restore beforeContent into the review-rubric surface',
+      }),
+    );
+
+    expect(isOk(parsed)).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.value.surface).toBe('review-rubric');
+      expect(isSafetySurface(parsed.value.surface)).toBe(false);
+      expect(isOk(gatePromotion(parsed.value))).toBe(true);
+    }
   });
 
   it('treats guard-rule as a safety surface', () => {
