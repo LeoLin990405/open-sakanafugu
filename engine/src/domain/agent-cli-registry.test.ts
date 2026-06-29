@@ -4,7 +4,9 @@ import {
   AGENT_CLI_IDS,
   KIMI_CODE_INVOCATION_DESCRIPTOR,
   MIMO_CODE_INVOCATION_DESCRIPTOR,
+  QODER_CLI_INVOCATION_DESCRIPTOR,
   QWEN_CODE_INVOCATION_DESCRIPTOR,
+  TRAE_AGENT_INVOCATION_DESCRIPTOR,
   agentCliEntries,
   lookupAgentCliDescriptor,
   lookupAgentCliEntry,
@@ -13,8 +15,20 @@ import { buildArgv } from './invocation-descriptor.js';
 
 describe('agent-cli registry', () => {
   it('lists descriptor-backed coding runtimes without adding harness names', () => {
-    expect(AGENT_CLI_IDS).toEqual(['qwen-code', 'kimi-code', 'mimo-code']);
-    expect(agentCliEntries().map((entry) => entry.modelFamily)).toEqual(['qwen', 'kimi', 'mimo']);
+    expect(AGENT_CLI_IDS).toEqual([
+      'qwen-code',
+      'kimi-code',
+      'mimo-code',
+      'trae-agent',
+      'qoder-cli',
+    ]);
+    expect(agentCliEntries().map((entry) => entry.modelFamily)).toEqual([
+      'qwen',
+      'kimi',
+      'mimo',
+      'trae',
+      'qoder',
+    ]);
     expect(lookupAgentCliEntry('unknown')).toBeUndefined();
   });
 
@@ -50,5 +64,33 @@ describe('agent-cli registry', () => {
         prompt: 'implement task',
       }),
     ).toEqual(['-p', 'implement task']);
+  });
+
+  it('declares Trae Agent as a prompt-first run descriptor', () => {
+    expect(lookupAgentCliDescriptor('trae-agent')).toEqual(TRAE_AGENT_INVOCATION_DESCRIPTOR);
+    expect(TRAE_AGENT_INVOCATION_DESCRIPTOR.bin).toBe('trae-cli');
+    expect(TRAE_AGENT_INVOCATION_DESCRIPTOR.healthCmd).toEqual(['--version']);
+    expect(
+      buildArgv(
+        TRAE_AGENT_INVOCATION_DESCRIPTOR,
+        {
+          agent: 'claude-sonnet-4',
+          prompt: 'implement task',
+        },
+        { extraArgs: ['--provider', 'anthropic'] },
+      ),
+    ).toEqual(['run', 'implement task', '--model', 'claude-sonnet-4', '--provider', 'anthropic']);
+  });
+
+  it('declares Qoder CLI as a print-mode flag-prompt descriptor', () => {
+    expect(lookupAgentCliDescriptor('qoder-cli')).toEqual(QODER_CLI_INVOCATION_DESCRIPTOR);
+    expect(QODER_CLI_INVOCATION_DESCRIPTOR.bin).toBe('qodercli');
+    expect(QODER_CLI_INVOCATION_DESCRIPTOR.healthCmd).toEqual(['--version']);
+    expect(
+      buildArgv(QODER_CLI_INVOCATION_DESCRIPTOR, {
+        agent: 'default',
+        prompt: 'implement task',
+      }),
+    ).toEqual(['--print', '-p', 'implement task']);
   });
 });
