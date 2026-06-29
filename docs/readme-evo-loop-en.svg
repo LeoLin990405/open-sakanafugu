@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 360" role="img" aria-labelledby="title desc">
+  <title id="title">FuguNano Evo Engineering loop</title>
+  <desc id="desc">Evidence becomes weakness signals, candidates, fitness, gated promotion, and lineage.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#18d9c5"/>
+    </marker>
+    <style>
+      .title{font:800 34px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#f8fafc;letter-spacing:0}
+      .sub{font:500 16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#b6c9d1;letter-spacing:0}
+      .node{font:800 17px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#f8fafc;letter-spacing:0}
+      .body{font:500 13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#b6c9d1;letter-spacing:0}
+      .mono{font:700 12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#18d9c5;letter-spacing:0}
+    </style>
+  </defs>
+  <rect width="1120" height="360" rx="26" fill="#070d12"/>
+  <path d="M20 300 C210 250 410 340 610 292 S910 238 1100 300" fill="none" stroke="#123b42" stroke-width="2"/>
+  <path d="M0 90 H1120 M0 180 H1120 M0 270 H1120" stroke="#0f2b31" stroke-width="1"/>
+  <text x="48" y="58" class="title">Evo Engineering in 60 seconds</text>
+  <text x="48" y="84" class="sub">Packets are not paperwork: they close the loop from evidence to a replayable promotion record.</text>
+
+  <g transform="translate(48 126)">
+    <rect width="142" height="116" rx="16" fill="#101b22" stroke="#275e68"/>
+    <text x="18" y="34" class="node">Evidence</text>
+    <text x="18" y="62" class="body">guard / review</text>
+    <text x="18" y="84" class="body">incident / handoff</text>
+    <text x="18" y="104" class="mono">packet JSON</text>
+  </g>
+  <line x1="196" y1="184" x2="242" y2="184" stroke="#18d9c5" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <g transform="translate(250 126)">
+    <rect width="142" height="116" rx="16" fill="#0b2424" stroke="#18d9c5"/>
+    <text x="18" y="34" class="node">Weakness</text>
+    <text x="18" y="62" class="body">cause + kind</text>
+    <text x="18" y="84" class="body">surface hint</text>
+    <text x="18" y="104" class="mono">sha256 refs</text>
+  </g>
+  <line x1="398" y1="184" x2="444" y2="184" stroke="#18d9c5" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <g transform="translate(452 126)">
+    <rect width="142" height="116" rx="16" fill="#101b22" stroke="#275e68"/>
+    <text x="18" y="34" class="node">Candidate</text>
+    <text x="18" y="62" class="body">guard-rule</text>
+    <text x="18" y="84" class="body">review-rubric</text>
+    <text x="18" y="104" class="mono">before → after</text>
+  </g>
+  <line x1="600" y1="184" x2="646" y2="184" stroke="#18d9c5" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <g transform="translate(654 126)">
+    <rect width="142" height="116" rx="16" fill="#111927" stroke="#3f6b8a"/>
+    <text x="18" y="34" class="node">Fitness</text>
+    <text x="18" y="62" class="body">held-in / out</text>
+    <text x="18" y="84" class="body">no regression</text>
+    <text x="18" y="104" class="mono">Δin≥0 Δout≥0</text>
+  </g>
+  <line x1="802" y1="184" x2="848" y2="184" stroke="#18d9c5" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <g transform="translate(856 126)">
+    <rect width="142" height="116" rx="16" fill="#21151a" stroke="#a15f64"/>
+    <text x="18" y="34" class="node">Promotion</text>
+    <text x="18" y="62" class="body">operator gate</text>
+    <text x="18" y="84" class="body">safety surfaces</text>
+    <text x="18" y="104" class="mono">guard-rule lock</text>
+  </g>
+  <line x1="1004" y1="184" x2="1040" y2="184" stroke="#18d9c5" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <g transform="translate(928 262)">
+    <rect width="144" height="54" rx="14" fill="#0b2424" stroke="#18d9c5"/>
+    <text x="18" y="24" class="node">Lineage</text>
+    <text x="18" y="44" class="mono">.fugunano/evolution</text>
+  </g>
+  <path d="M1070 184 C1100 208 1100 254 1072 280" fill="none" stroke="#18d9c5" stroke-width="2.5" marker-end="url(#arrow)"/>
+</svg>

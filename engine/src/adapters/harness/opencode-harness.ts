@@ -4,56 +4,36 @@ import type {
   DispatchResult,
   HealthStatus,
 } from '../../domain/dispatch.js';
+import type { InvocationDescriptor } from '../../domain/invocation-descriptor.js';
 import type { Harness } from '../../domain/ports/harness.js';
 import type { Result } from '../../domain/result.js';
-import type { CommandResult } from '../../infra/command-runner.js';
-import type { CommandOptions, CommandRunner } from '../../infra/command-runner.js';
-import { runDispatch, versionHealth, type HarnessExecOptions } from './exec-helpers.js';
+import type { CommandRunner } from '../../infra/command-runner.js';
+import { AgentCliHarness } from './agent-cli-harness.js';
+import type { HarnessExecOptions } from './exec-helpers.js';
 
-const OPENCODE_ERROR_TEXT = /(?:^|\n).*(?:Error:|ProviderModelNotFoundError|API key is missing)/u;
-
-const zeroExitOpencodeError = (result: CommandResult): string | undefined => {
-  if (result.stdout.trim().length > 0) return undefined;
-  const detail = result.stderr.trim();
-  if (detail.length === 0) return undefined;
-  return OPENCODE_ERROR_TEXT.test(detail) ? detail : undefined;
-};
+export const OPENCODE_INVOCATION_DESCRIPTOR = {
+  bin: 'opencode',
+  subcommand: ['run'],
+  promptMode: 'positional',
+  modelArg: '-m',
+  healthCmd: ['--version'],
+  failureMode: 'zero-exit-stderr',
+} as const satisfies InvocationDescriptor;
 
 /** Dispatch via `opencode run -m <provider/model> <prompt>` (target = provider/model). */
 export class OpencodeHarness implements Harness {
   readonly name = 'opencode';
-  private readonly bin: string;
-  private readonly commandOptions: CommandOptions;
-  private readonly extraArgs: readonly string[];
+  private readonly delegate: AgentCliHarness;
 
-  constructor(
-    private readonly runner: CommandRunner,
-    options: HarnessExecOptions = {},
-  ) {
-    this.bin = options.bin ?? 'opencode';
-    this.extraArgs = options.args ?? [];
-    this.commandOptions = {
-      ...(options.cwd !== undefined ? { cwd: options.cwd } : {}),
-      ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
-    };
-  }
-
-  private options(): CommandOptions {
-    return this.commandOptions;
+  constructor(runner: CommandRunner, options: HarnessExecOptions = {}) {
+    this.delegate = new AgentCliHarness(runner, OPENCODE_INVOCATION_DESCRIPTOR, options, this.name);
   }
 
   dispatch(request: DispatchRequest): Promise<Result<DispatchResult, DispatchError>> {
-    return runDispatch(
-      this.runner,
-      this.bin,
-      ['run', ...this.extraArgs, '-m', request.agent, request.prompt],
-      request,
-      this.options(),
-      { zeroExitError: zeroExitOpencodeError },
-    );
+    return this.delegate.dispatch(request);
   }
 
   health(): Promise<HealthStatus> {
-    return versionHealth(this.runner, this.bin, this.options());
+    return this.delegate.health();
   }
 }

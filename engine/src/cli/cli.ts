@@ -22,6 +22,12 @@ import {
   ExperienceRecallCommand,
   ExperienceShowCommand,
 } from './commands/experience.js';
+import {
+  EvolveHistoryCommand,
+  EvolveMineCommand,
+  EvolvePromoteCommand,
+  EvolveValidateCommand,
+} from './commands/evolve.js';
 import { FleetCommand } from './commands/fleet.js';
 import { GuardPromptCommand } from './commands/guard.js';
 import { GoalCheckCommand, GoalShowCommand, GoalTemplateCommand } from './commands/goal.js';
@@ -82,6 +88,10 @@ export const buildCli = (): Cli => {
   cli.register(ExperiencePromoteCommand);
   cli.register(ExperienceRecallCommand);
   cli.register(ExperienceShowCommand);
+  cli.register(EvolveMineCommand);
+  cli.register(EvolveValidateCommand);
+  cli.register(EvolvePromoteCommand);
+  cli.register(EvolveHistoryCommand);
   cli.register(TaskNewCommand);
   cli.register(TaskLogCommand);
   cli.register(TaskDoneCommand);

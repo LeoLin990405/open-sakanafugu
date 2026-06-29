@@ -9,6 +9,7 @@ import {
   AgentCliHarness,
   QWEN_CODE_INVOCATION_DESCRIPTOR,
 } from '../../adapters/harness/agent-cli-harness.js';
+import { AcpAgentHarness } from '../../adapters/harness/acp-agent-harness.js';
 import { CodexHarness } from '../../adapters/harness/codex-harness.js';
 import { FugueCcHarness } from '../../adapters/harness/fugue-cc-harness.js';
 import { AgyHarness } from '../../adapters/harness/agy-harness.js';
@@ -227,6 +228,8 @@ const defaultAgentsFor = (harness: HarnessName): readonly string[] => {
     case 'agy':
       return DEFAULT_AGY_PLAN_AGENTS;
     case 'agent-cli':
+      return DEFAULT_AGENT_CLI_PLAN_AGENTS;
+    case 'acp-agent':
       return DEFAULT_AGENT_CLI_PLAN_AGENTS;
   }
 };
@@ -510,6 +513,8 @@ export class PlanCommand extends Command {
         return this.harnessArgs;
       case 'agent-cli':
         return this.harnessArgs;
+      case 'acp-agent':
+        return this.harnessArgs;
     }
   }
 
@@ -547,6 +552,8 @@ export class PlanCommand extends Command {
           ...(timeoutMs !== undefined ? { timeoutMs } : {}),
           ...(args.length > 0 ? { args } : {}),
         });
+      case 'acp-agent':
+        return new AcpAgentHarness();
     }
   }
 }

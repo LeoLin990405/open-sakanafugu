@@ -4,46 +4,38 @@ import type {
   DispatchResult,
   HealthStatus,
 } from '../../domain/dispatch.js';
+import type { InvocationDescriptor } from '../../domain/invocation-descriptor.js';
 import type { Harness } from '../../domain/ports/harness.js';
 import type { Result } from '../../domain/result.js';
-import type { CommandOptions, CommandRunner } from '../../infra/command-runner.js';
-import { runDispatch, versionHealth, type HarnessExecOptions } from './exec-helpers.js';
+import type { CommandRunner } from '../../infra/command-runner.js';
+import { AgentCliHarness } from './agent-cli-harness.js';
+import type { HarnessExecOptions } from './exec-helpers.js';
+
+export const AGY_INVOCATION_DESCRIPTOR = {
+  bin: 'agy',
+  promptMode: 'flag',
+  flagName: '--prompt',
+  modelArg: 'omit-when-default',
+  dynamicArgOrder: 'prompt-then-model',
+  extraArgsPlacement: 'after-dynamic',
+  healthCmd: ['--version'],
+  failureMode: 'exit-code',
+} as const satisfies InvocationDescriptor;
 
 /** Dispatch via `agy --prompt <prompt> [--model <model>]` (target = model or `default`). */
 export class AgyHarness implements Harness {
   readonly name = 'agy';
-  private readonly bin: string;
-  private readonly commandOptions: CommandOptions;
-  private readonly extraArgs: readonly string[];
+  private readonly delegate: AgentCliHarness;
 
-  constructor(
-    private readonly runner: CommandRunner,
-    options: HarnessExecOptions = {},
-  ) {
-    this.bin = options.bin ?? 'agy';
-    this.extraArgs = options.args ?? [];
-    this.commandOptions = {
-      ...(options.cwd !== undefined ? { cwd: options.cwd } : {}),
-      ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
-    };
-  }
-
-  private options(): CommandOptions {
-    return this.commandOptions;
+  constructor(runner: CommandRunner, options: HarnessExecOptions = {}) {
+    this.delegate = new AgentCliHarness(runner, AGY_INVOCATION_DESCRIPTOR, options, this.name);
   }
 
   dispatch(request: DispatchRequest): Promise<Result<DispatchResult, DispatchError>> {
-    const modelArgs = request.agent === 'default' ? [] : ['--model', request.agent];
-    return runDispatch(
-      this.runner,
-      this.bin,
-      ['--prompt', request.prompt, ...modelArgs, ...this.extraArgs],
-      request,
-      this.options(),
-    );
+    return this.delegate.dispatch(request);
   }
 
   health(): Promise<HealthStatus> {
-    return versionHealth(this.runner, this.bin, this.options());
+    return this.delegate.health();
   }
 }

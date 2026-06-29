@@ -185,12 +185,16 @@ export type {
   PromptMode,
   ModelArgMode,
   FailureMode,
+  DynamicArgOrder,
+  ExtraArgPlacement,
   BuildArgvOptions,
 } from './domain/invocation-descriptor.js';
 export {
   PROMPT_MODES,
   MODEL_ARG_MODES,
   FAILURE_MODES,
+  DYNAMIC_ARG_ORDERS,
+  EXTRA_ARG_PLACEMENTS,
   buildArgv,
 } from './domain/invocation-descriptor.js';
 export type { AgentCliId, AgentCliRegistryEntry } from './domain/agent-cli-registry.js';
@@ -199,7 +203,9 @@ export {
   AGENT_CLI_IDS,
   KIMI_CODE_INVOCATION_DESCRIPTOR,
   MIMO_CODE_INVOCATION_DESCRIPTOR,
+  QODER_CLI_INVOCATION_DESCRIPTOR,
   QWEN_CODE_INVOCATION_DESCRIPTOR,
+  TRAE_AGENT_INVOCATION_DESCRIPTOR,
   agentCliEntries,
   lookupAgentCliDescriptor,
   lookupAgentCliEntry,
@@ -356,8 +362,18 @@ export { PersistentReviewLoop } from './adapters/loop/persistent-review-loop.js'
 export { BetaBernoulliAllocator } from './adapters/allocation/beta-bernoulli-allocator.js';
 export { FugueCcHarness } from './adapters/harness/fugue-cc-harness.js';
 export { CodexHarness } from './adapters/harness/codex-harness.js';
-export { OpencodeHarness } from './adapters/harness/opencode-harness.js';
-export { AgyHarness } from './adapters/harness/agy-harness.js';
+export {
+  OPENCODE_INVOCATION_DESCRIPTOR,
+  OpencodeHarness,
+} from './adapters/harness/opencode-harness.js';
+export { AGY_INVOCATION_DESCRIPTOR, AgyHarness } from './adapters/harness/agy-harness.js';
+export { AcpAgentHarness } from './adapters/harness/acp-agent-harness.js';
+export type {
+  AcpAgentHarnessOptions,
+  AcpAgentTransport,
+  AcpMethod,
+  AcpTransportError,
+} from './adapters/harness/acp-agent-harness.js';
 export {
   AgentCliHarness,
   CODEX_INVOCATION_DESCRIPTOR,
@@ -401,7 +417,12 @@ export {
   type RunReport,
 } from './app/coordinator.js';
 export { wireCoordinator, type WireConfig } from './app/wire.js';
-export { wireSelfHarness, type WireSelfHarnessConfig } from './app/wire.js';
+export {
+  wireEvolution,
+  wireSelfHarness,
+  type WireEvolutionConfig,
+  type WireSelfHarnessConfig,
+} from './app/wire.js';
 
 // Self-Harness — engine-native harness evolution, inspired by Shanghai AI Lab's arXiv 2606.09498.
 export {
@@ -409,3 +430,18 @@ export {
   type SelfHarnessDeps,
   type RoundResult,
 } from './app/self-harness-loop.js';
+export {
+  deterministicEvolutionRubricEvaluator,
+  EvolutionLoop,
+  type EvolutionCandidate,
+  type EvolutionCandidateProposer,
+  type EvolutionCandidateResult,
+  type EvolutionDecision,
+  type EvolutionLineageWriter,
+  type EvolutionLineageWriterError,
+  type EvolutionLoopDeps,
+  type EvolutionLoopResult,
+  type EvolutionValidationCases,
+  type GuardRuleCase,
+  type GuardRuleSplitCases,
+} from './app/evolution-loop.js';

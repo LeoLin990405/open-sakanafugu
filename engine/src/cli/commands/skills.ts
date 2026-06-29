@@ -7,6 +7,7 @@ import type { Readable } from 'node:stream';
 import { Command, Option } from 'clipanion';
 
 import { FsExperienceStore } from '../../adapters/experience/fs-experience-store.js';
+import { AcpAgentHarness } from '../../adapters/harness/acp-agent-harness.js';
 import { AgyHarness } from '../../adapters/harness/agy-harness.js';
 import {
   AgentCliHarness,
@@ -614,6 +615,8 @@ export class SkillsCommand extends Command {
         return new AgentCliHarness(runner, QWEN_CODE_INVOCATION_DESCRIPTOR, {
           bin: process.env.FUGUE_AGENT_CLI ?? QWEN_CODE_INVOCATION_DESCRIPTOR.bin,
         });
+      case 'acp-agent':
+        return new AcpAgentHarness();
     }
   }
 

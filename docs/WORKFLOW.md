@@ -30,7 +30,7 @@ When using the planning panel, pass `fuguectl plan "<goal>" --models m1,m2 --out
 
 The operator reads the task, splits it into parallelizable subtasks, and picks logical agent profiles by the decision tree:
 
-- Chinese-language scenario / provider-specific API / SQL -> matching model profile (doubao/qwen/glm/kimi...)
+- Localized docs / provider-specific API / SQL -> matching model profile (doubao/qwen/glm/kimi...)
 - English / algorithms / refactoring -> Codex or a strong-reasoning profile (deepseek/minimax)
 - Math and logic -> stepfun
 - One subtask = one independent, copy-ready prompt (**no broadcasting a single generic prompt to everyone**).

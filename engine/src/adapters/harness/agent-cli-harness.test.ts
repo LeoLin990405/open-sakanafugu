@@ -83,6 +83,37 @@ describe('AgentCliHarness', () => {
     expect(runner.calls[0]?.args).toEqual(['-p', 'implement this']);
   });
 
+  it('selects Trae Agent through an agent-cli registry id', async () => {
+    const runner = new FakeRunner(res({ stdout: 'ok' }));
+    const source: AgentCliRegistrySource = { agentId: 'trae-agent' };
+    await new AgentCliHarness(runner, source, { args: ['--provider', 'anthropic'] }).dispatch({
+      agent: 'claude-sonnet-4',
+      prompt: 'implement this',
+    });
+
+    expect(runner.calls[0]?.command).toBe('trae-cli');
+    expect(runner.calls[0]?.args).toEqual([
+      'run',
+      'implement this',
+      '--model',
+      'claude-sonnet-4',
+      '--provider',
+      'anthropic',
+    ]);
+  });
+
+  it('selects Qoder CLI through an agent-cli registry id', async () => {
+    const runner = new FakeRunner(res({ stdout: 'ok' }));
+    const source: AgentCliRegistrySource = { agentId: 'qoder-cli' };
+    await new AgentCliHarness(runner, source).dispatch({
+      agent: 'default',
+      prompt: 'implement this',
+    });
+
+    expect(runner.calls[0]?.command).toBe('qodercli');
+    expect(runner.calls[0]?.args).toEqual(['--print', '-p', 'implement this']);
+  });
+
   it('rejects unknown agent-cli registry ids as programmer errors', () => {
     const runner = new FakeRunner(res({ stdout: 'ok' }));
     expect(() => new AgentCliHarness(runner, { agentId: 'missing-code' })).toThrow(/missing-code/u);

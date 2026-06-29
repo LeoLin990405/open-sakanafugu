@@ -1,0 +1,44 @@
+{
+  "id": "evo-guard-rule-tighten-gh-release-certificate",
+  "surface": "guard-rule",
+  "candidateId": "tighten-gh-release-certificate",
+  "evidenceRefs": [
+    {
+      "sourceRef": "dogfood/guard-release-task.md",
+      "sourceSha256": "ca8476eca2b611693662d2e32ea7a9e0f2cb305ff0bcba8054a2528fd2bdaded",
+      "kind": "privileged-action-without-certificate"
+    }
+  ],
+  "beforeContent": "privileged-action-regex: (?:git\\s+push|npm\\s+publish)",
+  "afterSha256": "52982213c1028b3e79b067ca8619086facc8ff6e7454e184b41bb70e47ba449b",
+  "validationSpecSnapshot": {
+    "kind": "guard-rule",
+    "heldIn": [
+      "release-create-needs-certificate",
+      "safe-local-summary"
+    ],
+    "heldOut": [
+      "existing-npm-publish",
+      "certificate-present"
+    ]
+  },
+  "fitness": {
+    "heldIn": {
+      "pass": 2,
+      "total": 2,
+      "delta": 1
+    },
+    "heldOut": {
+      "pass": 2,
+      "total": 2,
+      "delta": 0
+    },
+    "regressions": 0,
+    "cost": {
+      "evaluator": "runtimeGuardPacket+privileged-action-regex",
+      "samples": 4
+    }
+  },
+  "promotedBy": "operator",
+  "rollbackHint": "restore the previous privileged-action regex if release automation is over-blocked"
+}

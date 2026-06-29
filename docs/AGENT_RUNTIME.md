@@ -50,7 +50,7 @@ dispatch time.
 | Field         | Meaning                                                                                                     |
 | ------------- | ----------------------------------------------------------------------------------------------------------- |
 | `id`          | Stable logical agent name used by plans, task files, and allocation tables.                                 |
-| `harness`     | Runtime adapter: `fugue-cc`, `codex`, `opencode`, or `agy`.                                                 |
+| `harness`     | Runtime adapter: `fugue-cc`, `codex`, `opencode`, `agy`, `agent-cli`, or `acp-agent`.                       |
 | `target`      | Optional harness-native agent/model. If omitted, `id` is dispatched directly.                               |
 | `modelFamily` | Policy label used for bans and generation-versus-review checks.                                             |
 | `roles`       | Optional role allow-list: `planner`, `implementer`, `reviewer`, `fixer`. Omitted means legacy unrestricted. |
@@ -117,6 +117,32 @@ of caching an empty "successful" artifact.
 Antigravity uses the same harness port through `agy --prompt`. A target of
 `default` uses the current Antigravity settings; any other target is passed as
 `--model <target>`.
+
+## Experimental Agent Health
+
+`agent-cli` is an opt-in harness for descriptor-backed coding CLIs. The registry
+currently carries Qwen Code, Kimi Code, MiMo Code, Trae Agent, and Qoder CLI
+entries. They do not enter `lite` / `all` defaults; operators must select them
+explicitly and provide the installed binary path when it differs from the
+descriptor default:
+
+```bash
+FUGUE_AGENT_CLI_KIMI_CODE=/path/to/kimi \
+FUGUE_AGENT_CLI_MIMO_CODE=/path/to/mimo \
+FUGUE_AGENT_CLI_TRAE_AGENT=/path/to/trae-cli \
+FUGUE_AGENT_CLI_QODER_CLI=/path/to/qodercli \
+fuguectl preflight --harness agent-cli --agent-cli-bin /path/to/qwen
+```
+
+The default `allocation.tsv` seeds the trusted descriptor-backed set under the
+separate `agent-cli` task type: `qwen-code,kimi-code,mimo-code`. Trae Agent and
+Qoder CLI are present as `[真机TODO]` registry entries until a local install
+confirms their argv details. `acp-agent` is protocol-shaped rather than
+spawn-shaped; it is exposed as an experimental harness with stub tests, but a
+real ZCode / GLM transport must be wired before it can pass health. A practical
+operations loop is to run `fuguectl preflight --harness agent-cli` before
+allocation windows and keep ACP transport health in the same scheduled smoke
+job once a real transport lands.
 
 ## Policy
 

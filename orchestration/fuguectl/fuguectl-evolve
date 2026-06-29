@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+import { runSubcommandBridge } from "./fuguectl-node-bridge.mjs";
+
+runSubcommandBridge({
+  argv: process.argv.slice(2),
+  command: "evolve",
+  allowed: ["mine", "validate", "promote", "history"],
+  help: `fuguectl-evolve — local evolution evidence, validation, and lineage bridge
+
+usage:
+  fuguectl evolve mine <packet.json...> --out weaknesses.json
+  fuguectl evolve validate --candidate c.json --cases cases.json [--samples N] --out fitness.json
+  fuguectl evolve promote --candidate c.json --fitness f.json --by operator|self-harness|evolve --lineage <dir>
+  fuguectl evolve history --lineage <dir>`,
+  unknown: (subcommand) =>
+    `fuguectl-evolve: unknown subcommand '${subcommand}' (mine|validate|promote|history)`,
+});

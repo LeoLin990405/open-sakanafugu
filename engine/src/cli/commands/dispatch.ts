@@ -12,6 +12,7 @@ import {
   AgentCliHarness,
   QWEN_CODE_INVOCATION_DESCRIPTOR,
 } from '../../adapters/harness/agent-cli-harness.js';
+import { AcpAgentHarness } from '../../adapters/harness/acp-agent-harness.js';
 import { CodexHarness } from '../../adapters/harness/codex-harness.js';
 import { FugueCcHarness } from '../../adapters/harness/fugue-cc-harness.js';
 import { AgyHarness } from '../../adapters/harness/agy-harness.js';
@@ -721,6 +722,8 @@ export class DispatchCommand extends Command {
           ...(timeoutMs !== undefined ? { timeoutMs } : {}),
           ...(this.harnessArgs.length > 0 ? { args: this.harnessArgs } : {}),
         });
+      case 'acp-agent':
+        return new AcpAgentHarness();
     }
   }
 

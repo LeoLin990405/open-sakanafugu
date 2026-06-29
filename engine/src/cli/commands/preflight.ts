@@ -64,6 +64,8 @@ const includesAgy = (harness: PreflightHarness): boolean =>
 
 const includesAgentCli = (harness: PreflightHarness): boolean => harness === 'agent-cli';
 
+const includesAcpAgent = (harness: PreflightHarness): boolean => harness === 'acp-agent';
+
 const trimNonEmpty = (value: string | undefined): string | undefined => {
   const trimmed = value?.trim();
   return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
@@ -332,6 +334,10 @@ export class PreflightCommand extends Command {
         if (await cliExists(runner, bin)) ok(lines, `${entry.id}: ${bin}`);
         else fail(lines, status, `missing ${entry.id}: ${bin}`);
       }
+    }
+
+    if (includesAcpAgent(harness)) {
+      fail(lines, status, 'acp-agent transport not configured [真机TODO: real ZCode/GLM E2E]');
     }
 
     if (includesFugueCc(harness)) {

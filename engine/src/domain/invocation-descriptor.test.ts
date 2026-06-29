@@ -77,4 +77,50 @@ describe('buildArgv', () => {
 
     expect(() => buildArgv(descriptor, { agent: 'default', prompt: 'x' })).toThrow(/flagName/u);
   });
+
+  it('supports OpenCode run args with -m and a positional prompt', () => {
+    const descriptor: InvocationDescriptor = {
+      bin: 'opencode',
+      subcommand: ['run'],
+      promptMode: 'positional',
+      modelArg: '-m',
+      healthCmd: ['--version'],
+      failureMode: 'zero-exit-stderr',
+    };
+
+    expect(
+      buildArgv(
+        descriptor,
+        {
+          agent: 'opencode/deepseek-v4-flash-free',
+          prompt: 'plan this',
+        },
+        { extraArgs: ['--agent', 'review'] },
+      ),
+    ).toEqual(['run', '--agent', 'review', '-m', 'opencode/deepseek-v4-flash-free', 'plan this']);
+  });
+
+  it('supports Agy prompt-first args with optional model and trailing extra args', () => {
+    const descriptor: InvocationDescriptor = {
+      bin: 'agy',
+      promptMode: 'flag',
+      flagName: '--prompt',
+      modelArg: 'omit-when-default',
+      dynamicArgOrder: 'prompt-then-model',
+      extraArgsPlacement: 'after-dynamic',
+      healthCmd: ['--version'],
+      failureMode: 'exit-code',
+    };
+
+    expect(
+      buildArgv(
+        descriptor,
+        {
+          agent: 'Gemini 3.5 Flash (Medium)',
+          prompt: 'go',
+        },
+        { extraArgs: ['--new-project'] },
+      ),
+    ).toEqual(['--prompt', 'go', '--model', 'Gemini 3.5 Flash (Medium)', '--new-project']);
+  });
 });

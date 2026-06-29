@@ -28,6 +28,7 @@ const help = `fuguectl — fugue workflow control-plane entrypoint.
   fuguectl workspace list|show|model|context <name> [context: --experience-source manual|task --experience-source-ref ref --experience-limit n --experience-budget-chars n --experience-trust trusted|all --experience-max-age-days n]
   fuguectl agents template|validate [file]|list [file]|resolve [file] <id>
   fuguectl experience add|audit|eval|learn|list|policy|promote|recall|show <ws> [add: --trust trusted|untrusted --source-ref ref --supersedes slug] [audit: --json --max-age-days n] [eval: --cases file --json] [learn: --supersedes slug] [policy: <slug>|--query q --json] [promote: <slug> --source-ref ref --confirm-source-ref ref] [recall: --query q --source manual|task --source-ref ref --trust trusted|untrusted|all --min-score n --max-age-days n --include-superseded --explain --json --metadata-only]
+  fuguectl evolve mine|validate|promote|history  local evidence mining, candidate validation, and gated lineage promotion
   fuguectl plan "<goal>" [--harness fugue-cc|codex|opencode|agy|lite] [--models a,b,c] [--out <dir>] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task <file>]  writes <out>/summary.json
   fuguectl goal template|show|check <spec>
   fuguectl loop init|record|decide|status
@@ -93,6 +94,7 @@ const commandMap = new Map([
   ["workspace", "workspace"],
   ["agents", "agent-registry"],
   ["experience", "experience"],
+  ["evolve", "evolve"],
   ["plan", "plan"],
   ["goal", "goal"],
   ["loop", "loop"],
@@ -119,7 +121,7 @@ if (subcommand === "help" || subcommand === "-h" || subcommand === "--help") {
   runEngine([commandMap.get(subcommand), ...rest]);
 } else {
   console.error(
-    `fuguectl: unknown subcommand '${subcommand}' (doctor|init|version|fleet|preflight|smoke|task|guard|review|incident|template|dispatch|cache|integrate|allocate|skills|workspace|agents|experience|plan|goal|loop|run|summary|self-harness|runtime|selftest|help)`,
+    `fuguectl: unknown subcommand '${subcommand}' (doctor|init|version|fleet|preflight|smoke|task|guard|review|incident|template|dispatch|cache|integrate|allocate|skills|workspace|agents|experience|evolve|plan|goal|loop|run|summary|self-harness|runtime|selftest|help)`,
   );
   console.error("try: fuguectl help or fuguectl help quickstart");
   process.exit(2);

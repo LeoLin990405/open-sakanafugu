@@ -5709,6 +5709,8 @@ describe('fugue CLI', () => {
       const qwen = join(dir, 'qwen');
       const kimi = join(dir, 'kimi');
       const mimo = join(dir, 'mimo');
+      const trae = join(dir, 'trae-cli');
+      const qoder = join(dir, 'qodercli');
       await writeFile(codex, '#!/usr/bin/env bash\nexit 0\n', 'utf8');
       await writeFile(
         qwen,
@@ -5725,13 +5727,27 @@ describe('fugue CLI', () => {
         '#!/usr/bin/env bash\n[ "$1" = "--version" ] && printf "mimo-code 1.0.0\\n"\n',
         'utf8',
       );
+      await writeFile(
+        trae,
+        '#!/usr/bin/env bash\n[ "$1" = "--version" ] && printf "trae-agent 0.1.0\\n"\n',
+        'utf8',
+      );
+      await writeFile(
+        qoder,
+        '#!/usr/bin/env bash\n[ "$1" = "--version" ] && printf "qoder-cli 0.1.0\\n"\n',
+        'utf8',
+      );
       await chmod(codex, 0o755);
       await chmod(qwen, 0o755);
       await chmod(kimi, 0o755);
       await chmod(mimo, 0o755);
+      await chmod(trae, 0o755);
+      await chmod(qoder, 0o755);
 
       process.env.FUGUE_AGENT_CLI_KIMI_CODE = kimi;
       process.env.FUGUE_AGENT_CLI_MIMO_CODE = mimo;
+      process.env.FUGUE_AGENT_CLI_TRAE_AGENT = trae;
+      process.env.FUGUE_AGENT_CLI_QODER_CLI = qoder;
       let result: Awaited<ReturnType<typeof run>> | undefined;
       try {
         result = await run([
@@ -5746,6 +5762,8 @@ describe('fugue CLI', () => {
       } finally {
         delete process.env.FUGUE_AGENT_CLI_KIMI_CODE;
         delete process.env.FUGUE_AGENT_CLI_MIMO_CODE;
+        delete process.env.FUGUE_AGENT_CLI_TRAE_AGENT;
+        delete process.env.FUGUE_AGENT_CLI_QODER_CLI;
       }
       if (result === undefined) throw new Error('preflight did not run');
 
@@ -5754,6 +5772,8 @@ describe('fugue CLI', () => {
       expect(result.out).toContain('qwen-code 1.0.0');
       expect(result.out).toContain('kimi-code 1.0.0');
       expect(result.out).toContain('mimo-code 1.0.0');
+      expect(result.out).toContain('trae-agent 0.1.0');
+      expect(result.out).toContain('qoder-cli 0.1.0');
       expect(result.out).not.toContain('missing fugue-cc');
       expect(result.out).not.toContain('provider config not located');
     });

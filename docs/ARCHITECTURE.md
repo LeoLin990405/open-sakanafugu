@@ -48,6 +48,8 @@ Rule: `domain` imports nothing outward. `app` imports only `domain`. `adapters`/
 
 > **These packets are FuguNano's own online decision boundaries, not just offline reports.** Each pure-domain packet above (and `reviewPacket` / `taskHandoffPacket` / `action-certificate` / `taskContextDigest`) is wired into the engine's own pipeline, not only reachable via its `fuguectl <cmd>`: `dispatch` runs `runtimeGuardPacket` as a pre-dispatch gate (`--guard strict` refuses block dispositions and privileged actions with no `--certificate`), auto-derives `incidentPacket`/`incidentRecoveryPacket` on failure, and prefixes the prompt with a `taskContextDigest` under `--task-digest`; `integrate --strict-handoff` refuses a blocked `taskHandoffPacket`; `loop record --review` derives the verdict from a `reviewPacket`. A higher-level framework _may_ also consume the same packets, but the primary consumer is the engine itself.
 
+The Evo Engineering loop closes that boundary: `EvolutionLoop` maps those packets into weakness signals, scores `guard-rule` / `review-rubric` candidates against fixed splits, and records accepted promotions in `.fugunano/evolution` through the same lineage gate.
+
 ## 4. Domain — value objects
 
 Pure data (readonly, no behavior beyond constructors/guards). The vocabulary the whole engine speaks:
