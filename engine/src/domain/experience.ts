@@ -163,6 +163,27 @@ export interface PackedExperienceMethods {
   readonly maxChars?: number;
 }
 
+export type ExperiencePolicyItemKind = 'requirement' | 'output' | 'audit' | 'lesson' | 'body';
+
+export interface ExperiencePolicyItem {
+  readonly kind: ExperiencePolicyItemKind;
+  readonly text: string;
+}
+
+export interface ExperiencePolicyCard {
+  readonly workspace: string;
+  readonly title: string;
+  readonly slug: string;
+  readonly created: number;
+  readonly sourceKind: ExperienceSourceKind;
+  readonly sourceRef?: string;
+  readonly trustKind: ExperienceTrustKind;
+  readonly confirmedBy?: readonly string[];
+  readonly supersedes?: readonly string[];
+  readonly failureCause?: FailureCause;
+  readonly items: readonly ExperiencePolicyItem[];
+}
+
 const charLength = (value: string): number => Array.from(value).length;
 
 const renderedExperienceBlockChars = (rendered: readonly string[]): number =>
@@ -197,6 +218,116 @@ export const packExperienceMethodsForPrompt = (
     omitted,
     maxChars,
   };
+};
+
+const policySections: Readonly<Record<string, ExperiencePolicyItemKind>> = {
+  Requirements: 'requirement',
+  'Output files': 'output',
+  'Reusable audit notes': 'audit',
+  'Relabeled lesson': 'lesson',
+};
+
+const cleanPolicyText = (value: string): string =>
+  value
+    .replace(/^[-*]\s+/u, '')
+    .replace(/^\d+[.)]\s+/u, '')
+    .replace(/^\[[ xX]\]\s+/u, '')
+    .trim();
+
+const isPolicyBullet = (line: string): boolean =>
+  /^[-*]\s+\S/u.test(line) || /^\d+[.)]\s+\S/u.test(line);
+
+const policySectionItems = (
+  lines: readonly string[],
+  start: number,
+  kind: ExperiencePolicyItemKind,
+): readonly ExperiencePolicyItem[] => {
+  const items: ExperiencePolicyItem[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line.trim().endsWith(':') && line.trim().length < 80) break;
+    if (line.trim().length === 0) {
+      if (items.length > 0) break;
+      continue;
+    }
+    if (isPolicyBullet(line)) {
+      const text = cleanPolicyText(line);
+      if (text.length > 0 && text !== '(none recorded)') items.push({ kind, text });
+    } else if (kind === 'lesson') {
+      const text = cleanPolicyText(line);
+      if (text.length > 0) items.push({ kind, text });
+    }
+  }
+  return items;
+};
+
+const fallbackPolicyItems = (body: string): readonly ExperiencePolicyItem[] =>
+  body
+    .split(/\r?\n/u)
+    .map((line) => cleanPolicyText(line))
+    .filter((line) => line.length > 0 && !line.endsWith(':'))
+    .slice(0, 8)
+    .map((text) => ({ kind: 'body', text }));
+
+export const experiencePolicyCard = (method: Method): ExperiencePolicyCard => {
+  const lines = method.body.split(/\r?\n/u);
+  const items: ExperiencePolicyItem[] = [];
+  for (const [index, line] of lines.entries()) {
+    const sectionKind = policySections[line.trim().replace(/:$/u, '')];
+    if (sectionKind !== undefined) {
+      items.push(...policySectionItems(lines, index, sectionKind));
+    }
+  }
+  const uniqueItems: ExperiencePolicyItem[] = [];
+  const seen = new Set<string>();
+  for (const item of items.length === 0 ? fallbackPolicyItems(method.body) : items) {
+    const key = `${item.kind}\t${item.text}`;
+    if (!seen.has(key)) {
+      uniqueItems.push(item);
+      seen.add(key);
+    }
+  }
+  const failureCause = experienceFailureCause(method);
+  return {
+    workspace: method.workspace,
+    title: method.title,
+    slug: method.slug,
+    created: method.created,
+    sourceKind: method.sourceKind,
+    ...(method.sourceRef === undefined || method.sourceRef.length === 0
+      ? {}
+      : { sourceRef: method.sourceRef }),
+    trustKind: method.trustKind,
+    ...(method.confirmedBy === undefined || method.confirmedBy.length === 0
+      ? {}
+      : { confirmedBy: method.confirmedBy }),
+    ...(method.supersedes === undefined || method.supersedes.length === 0
+      ? {}
+      : { supersedes: method.supersedes }),
+    ...(failureCause === undefined ? {} : { failureCause }),
+    items: uniqueItems.slice(0, 16),
+  };
+};
+
+export const renderExperiencePolicyCard = (card: ExperiencePolicyCard): string => {
+  const metadata = {
+    slug: card.slug,
+    sourceKind: card.sourceKind,
+    ...(card.sourceRef === undefined ? {} : { sourceRef: card.sourceRef }),
+    trustKind: card.trustKind,
+    ...(card.confirmedBy === undefined || card.confirmedBy.length === 0
+      ? {}
+      : { confirmedBy: card.confirmedBy }),
+    created: card.created,
+    ...(card.failureCause === undefined ? {} : { failureCause: card.failureCause }),
+    ...(card.supersedes === undefined || card.supersedes.length === 0
+      ? {}
+      : { supersedes: card.supersedes }),
+  };
+  const body =
+    card.items.length === 0
+      ? '- body: (no reusable checklist items extracted)'
+      : card.items.map((item) => `- ${item.kind}: ${item.text}`).join('\n');
+  return `[experience:policy] ${card.title}\n[experience:policy:meta] ${JSON.stringify(metadata)}\n${body}\n`;
 };
 
 export interface RecallMatchExplanation {

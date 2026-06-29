@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/Runtime-Node%20%E2%89%A518.18-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js >= 18.18" />
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-25%20suites-7c3aed?style=for-the-badge" alt="25 fuguectl test suites" />
-  <img src="https://img.shields.io/badge/assertions-343-brightgreen?style=for-the-badge" alt="343 fuguectl assertions" />
+  <img src="https://img.shields.io/badge/assertions-345-brightgreen?style=for-the-badge" alt="345 fuguectl assertions" />
   <a href="https://github.com/BicaMindLabs/FuguNano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/FuguNano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
@@ -243,6 +243,12 @@ downstream LLM answer. JSON recall emits `workspace`, `title`, `slug`,
 `matchedTerms`, and `body`.
 JSON output includes match evidence directly, so `--json --explain` stays JSON
 only instead of mixing human-readable audit lines into the stream.
+Use `experience policy <workspace> (<slug>|--query <q>) [--json]` when a full
+memory body is too bulky for a reviewer or downstream agent. It deterministically
+turns exact or recalled experience into provenance-bearing policy cards:
+`[experience:policy]`, `[experience:policy:meta]`, and requirement/output/audit
+checklist items extracted from the stored method. This is not an LLM summary and
+does not mutate the store.
 Add `--metadata-only` with `--json` when the recall audit needs to cross a
 privacy boundary: it keeps the same metadata and match evidence but replaces
 `body` with `bodySha256` and `bodyChars`, so reviewers can verify which memory
@@ -322,6 +328,9 @@ fuguectl experience recall code \
   --min-score 2 \
   --json
 
+fuguectl experience policy code dispatch-observability-retro
+fuguectl experience policy code --query "dispatch output" --json
+
 fuguectl experience recall code \
   --query "dispatch output" \
   --min-score 2 \
@@ -359,10 +368,13 @@ audits; run local JSON/JSONL recall eval cases with precision/recall/F1/MRR;
 support body-hashed metadata-only audits for privacy-sensitive review; require
 source-bound confirmation before imported memory is promoted to trusted; scan
 the store for governance violations before replay; pack automatic injection
-under a deterministic rendered-character budget; then render injected memories
-with source/trust metadata. Learned budget-tier routing, semantic conflict
-adjudication, richer provenance graphs, and formal machine-checked authority
-are future work. The newest references in this direction are
+under a deterministic rendered-character budget; convert exact/recalled methods
+into compact policy cards when an agent needs a checklist instead of the full
+memory body; then render injected memories with source/trust metadata. Learned
+budget-tier routing, semantic conflict adjudication, richer provenance graphs,
+and formal machine-checked authority are future work. The newest references in
+this direction are
+[Traversal-as-Policy](https://arxiv.org/abs/2603.05517),
 [MemRefine](https://arxiv.org/abs/2606.13177),
 [Decision-Aware Memory Cards / CICL](https://arxiv.org/abs/2606.08151),
 [Useful Memories Become Faulty](https://arxiv.org/abs/2605.12978),
@@ -417,6 +429,7 @@ fugue experience add|list|show --store <dir> [add: --trust trusted|untrusted --s
 fugue experience audit --store <dir> [workspace] --json [--max-age-days n]
 fugue experience learn --store <dir> [--failure-cause cause] [--supersedes slug]
 fugue experience promote --store <dir> <workspace> <slug> --source-ref ref --confirm-source-ref ref
+fugue experience policy --store <dir> <workspace> (<slug>|--query q) [--source manual|task] [--source-ref ref] [--trust trusted|untrusted|all] [--min-score n] [--max-age-days n] [--include-superseded] [--json]
 fugue experience recall --store <dir> [--failure-cause cause] [--source manual|task] [--source-ref ref] [--trust trusted|untrusted|all] [--min-score n] [--max-age-days n] [--include-superseded] [--explain] [--json] [--metadata-only]
 fugue experience eval --store <dir> <workspace> --cases <json|jsonl> --json
 fugue summary <round> --cache <dir> [--task <file>]
@@ -560,7 +573,7 @@ GitHub Security Advisory.
 - [SeemSeam/claude_codex_bridge](https://github.com/SeemSeam/claude_codex_bridge) as a reference for the provider-runtime bridge.
 - Shanghai Artificial Intelligence Laboratory's [Self-Harness paper](https://arxiv.org/abs/2606.09498) for the harness-improvement loop that inspired `fuguectl self-harness`.
 - [Agent Workflow Memory](https://arxiv.org/abs/2409.07429), [AgentHER](https://arxiv.org/abs/2603.21357), [MemRL](https://arxiv.org/abs/2601.03192), [How Memory Management Impacts LLM Agents](https://arxiv.org/abs/2505.16067), [Agent-Native Memory Systems](https://arxiv.org/abs/2606.24775), [STALE](https://arxiv.org/abs/2605.06527), [Governing Evolving Memory in LLM Agents](https://arxiv.org/abs/2603.11768), [Agent Memory: Characterization and System Implications](https://arxiv.org/abs/2606.06448), [MemMachine](https://arxiv.org/abs/2604.04853), [RCR-Router](https://arxiv.org/abs/2508.04903), [BudgetMem](https://arxiv.org/abs/2602.06025), [Token Economics for LLM Agents](https://arxiv.org/abs/2605.09104), [Graph Memory for LLM Agents](https://arxiv.org/abs/2606.06036), [Externalization in LLM Agents](https://arxiv.org/abs/2604.08224), [Cost-Sensitive Store Routing](https://arxiv.org/abs/2603.15658), [Compute Allocation for Reasoning-Intensive Retrieval Agents](https://openreview.net/forum?id=nqr4eTODKl), and [RecoAtlas](https://arxiv.org/abs/2605.18805) for the stale-aware, cause-aware, provenance-visible, budgeted, explainable, utility-gated experience replay direction.
-- [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990), [PROV-AGENT](https://arxiv.org/abs/2508.02866), [LLM Agents for Interactive Workflow Provenance](https://arxiv.org/abs/2509.13978), [Distilling Feedback into Memory-as-a-Tool](https://arxiv.org/abs/2601.05960), and [Structured Belief State](https://arxiv.org/abs/2605.11325) for the evidence-tracing, workflow-provenance, and retrieval-precision framing behind provenance-bearing injected memory and `experience recall --json`.
+- [Traversal-as-Policy](https://arxiv.org/abs/2603.05517), [From Agent Traces to Trust](https://arxiv.org/abs/2606.04990), [PROV-AGENT](https://arxiv.org/abs/2508.02866), [LLM Agents for Interactive Workflow Provenance](https://arxiv.org/abs/2509.13978), [Distilling Feedback into Memory-as-a-Tool](https://arxiv.org/abs/2601.05960), and [Structured Belief State](https://arxiv.org/abs/2605.11325) for the evidence-tracing, workflow-provenance, policy-card, and retrieval-precision framing behind provenance-bearing injected memory, `experience policy`, and `experience recall --json`.
 - [MemoryAgentBench](https://openreview.net/forum?id=DT7JyQC3MR) and [StructMemEval](https://arxiv.org/abs/2602.11243) for treating memory as a separately evaluated capability, which motivates `experience eval` cases over raw recall results.
 - [MRMMIA](https://arxiv.org/abs/2605.27825) for the memory-membership privacy risk that motivates metadata-only recall audits with body hashes instead of raw memory text.
 - [Securing LLM-Agent Long-Term Memory Against Poisoning](https://arxiv.org/abs/2606.24322), [From Untrusted Input to Trusted Memory](https://arxiv.org/abs/2606.04329) / [OpenReview](https://openreview.net/forum?id=5cgg9yenCZ), and [Agents That Know Too Much](https://arxiv.org/abs/2606.26627) for the write-time trust metadata, trusted-only automatic injection gate, and origin-bound `experience promote` path that starts addressing memory write-channel and cross-session privacy risks.

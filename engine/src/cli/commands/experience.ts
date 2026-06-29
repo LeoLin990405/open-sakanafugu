@@ -11,10 +11,12 @@ import {
   FAILURE_CAUSES,
   auditExperienceMethods,
   explainRecallMatch,
+  experiencePolicyCard,
   isExperienceSourceKind,
   isFailureCause,
   isExperienceTrustFilter,
   isExperienceTrustKind,
+  renderExperiencePolicyCard,
 } from '../../domain/experience.js';
 import type {
   ExperienceSourceKind,
@@ -766,6 +768,147 @@ export class ExperienceListCommand extends ExperienceCommand {
     for (const method of methods) {
       this.context.stdout.write(`  ${method.workspace.padEnd(12)} ${method.title}\n`);
     }
+  }
+}
+
+export class ExperiencePolicyCommand extends ExperienceCommand {
+  static override paths = [['experience', 'policy']];
+
+  workspace = Option.String();
+  slug = Option.String({ required: false });
+  query = Option.String('--query');
+  limit = Option.String('--limit', '3');
+  failureCause = Option.String('--failure-cause');
+  sourceKind = Option.String('--source');
+  sourceRef = Option.String('--source-ref');
+  trust = Option.String('--trust');
+  minScore = Option.String('--min-score');
+  maxAgeDays = Option.String('--max-age-days');
+  includeSuperseded = Option.Boolean('--include-superseded', false);
+  json = Option.Boolean('--json', false);
+
+  override async execute(): Promise<number> {
+    const query = this.query?.trim();
+    if (this.query !== undefined && (query === undefined || query.length === 0)) {
+      this.context.stderr.write('experience policy needs non-empty --query <text>\n');
+      return 1;
+    }
+    if (this.slug !== undefined && this.query !== undefined) {
+      this.context.stderr.write('experience policy accepts either <slug> or --query, not both\n');
+      return 1;
+    }
+    if ((this.slug === undefined || this.slug.trim().length === 0) && query === undefined) {
+      this.context.stderr.write('experience policy needs <slug> or --query <text>\n');
+      return 1;
+    }
+    const cause = normalizeFailureCause(this.failureCause);
+    if (this.failureCause !== undefined) {
+      if (cause === undefined || cause.length === 0 || !isFailureCause(cause)) {
+        this.context.stderr.write(failureCauseError(cause));
+        return 1;
+      }
+    }
+    const sourceKind = normalizeSourceKind(this.sourceKind);
+    if (this.sourceKind !== undefined) {
+      if (
+        sourceKind === undefined ||
+        sourceKind.length === 0 ||
+        !isExperienceSourceKind(sourceKind)
+      ) {
+        this.context.stderr.write(sourceKindError(sourceKind));
+        return 1;
+      }
+    }
+    const trustFilter = normalizeTrustKind(this.trust);
+    if (this.trust !== undefined) {
+      if (
+        trustFilter === undefined ||
+        trustFilter.length === 0 ||
+        !isExperienceTrustFilter(trustFilter)
+      ) {
+        this.context.stderr.write(trustFilterError(trustFilter));
+        return 1;
+      }
+    }
+    const sourceRef = this.sourceRef?.trim();
+    if (this.sourceRef !== undefined && (sourceRef === undefined || sourceRef.length === 0)) {
+      this.context.stderr.write(sourceRefError());
+      return 1;
+    }
+    const minScore = parseMinScore(this.minScore);
+    if (minScore === null) {
+      this.context.stderr.write('unknown --min-score; expected a positive integer\n');
+      return 1;
+    }
+    if (minScore !== undefined && query === undefined) {
+      this.context.stderr.write('--min-score requires a non-empty --query\n');
+      return 1;
+    }
+    const maxAgeSeconds = parseMaxAgeDays(this.maxAgeDays);
+    if (maxAgeSeconds === null) {
+      this.context.stderr.write('unknown --max-age-days; expected a positive integer\n');
+      return 1;
+    }
+    let options: RecallOptions = { limit: parseLimit(this.limit) };
+    if (query !== undefined) {
+      options = { ...options, query };
+    }
+    const recallFailureCause: FailureCause | undefined =
+      cause !== undefined && isFailureCause(cause) ? cause : undefined;
+    if (recallFailureCause !== undefined) {
+      options = { ...options, failureCause: recallFailureCause };
+    }
+    const recallSourceKind: ExperienceSourceKind | undefined =
+      sourceKind !== undefined && isExperienceSourceKind(sourceKind) ? sourceKind : undefined;
+    if (recallSourceKind !== undefined) {
+      options = { ...options, sourceKind: recallSourceKind };
+    }
+    if (sourceRef !== undefined) {
+      options = { ...options, sourceRef };
+    }
+    const recallTrustFilter: ExperienceTrustFilter | undefined =
+      trustFilter !== undefined && isExperienceTrustFilter(trustFilter) ? trustFilter : undefined;
+    if (recallTrustFilter !== undefined) {
+      options = { ...options, trust: recallTrustFilter };
+    }
+    if (minScore !== undefined) {
+      options = { ...options, minScore };
+    }
+    if (maxAgeSeconds !== undefined) {
+      options = { ...options, maxAgeSeconds };
+    }
+    if (this.includeSuperseded) {
+      options = { ...options, includeSuperseded: true };
+    }
+    const store = this.experienceStore();
+    let missingExact = false;
+    const methods: readonly Method[] =
+      this.slug === undefined
+        ? await store.recall(this.workspace, options)
+        : await (async (): Promise<readonly Method[]> => {
+            const method = await store.get(this.workspace, this.slug ?? '');
+            if (method === null) {
+              missingExact = true;
+              this.context.stderr.write(`no experience ${this.workspace}/${this.slug ?? ''}\n`);
+              return [];
+            }
+            const workspaceMethods = await store.list(this.workspace);
+            const filtered = await store.recall(this.workspace, {
+              ...options,
+              limit: Math.max(1, workspaceMethods.length),
+            });
+            return filtered.some((entry) => entry.slug === method.slug) ? [method] : [];
+          })();
+    if (missingExact) return 1;
+    const cards = methods.map(experiencePolicyCard);
+    if (this.json) {
+      this.context.stdout.write(`${JSON.stringify(cards, null, 2)}\n`);
+    } else {
+      for (const card of cards) {
+        this.context.stdout.write(renderExperiencePolicyCard(card));
+      }
+    }
+    return 0;
   }
 }
 

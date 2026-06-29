@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   auditExperienceMethods,
   explainRecallMatch,
+  experiencePolicyCard,
   packExperienceMethodsForPrompt,
   renderExperienceMethod,
+  renderExperiencePolicyCard,
 } from './experience.js';
 import type { Method } from './experience.js';
 
@@ -317,6 +319,78 @@ describe('packExperienceMethodsForPrompt', () => {
     expect(packed.rendered).toEqual([]);
     expect(packed.omitted).toBe(1);
     expect(packed.totalChars).toBe(0);
+  });
+});
+
+describe('experiencePolicyCard', () => {
+  it('extracts a provenance-bearing policy checklist from task-learned experience', () => {
+    const method: Method = {
+      workspace: 'code',
+      title: 'dispatch retro',
+      slug: 'dispatch-retro',
+      created: 42,
+      sourceKind: 'task',
+      sourceRef: '/tmp/TASK.md',
+      trustKind: 'trusted',
+      supersedes: ['old-retro'],
+      body: [
+        'Source task: /tmp/TASK.md',
+        'Task: TASK: dispatch retro',
+        'Status: DONE (completed 2026-06-29)',
+        '',
+        'Requirements:',
+        '- Preserve source provenance.',
+        '- Run independent review.',
+        '',
+        'Output files:',
+        '- engine/src/domain/experience.ts',
+        '',
+        'Reusable audit notes:',
+        '- Independent review found a separator-counting bug.',
+        '- Full retest green.',
+      ].join('\n'),
+    };
+
+    const card = experiencePolicyCard(method);
+
+    expect(card).toEqual({
+      workspace: 'code',
+      title: 'dispatch retro',
+      slug: 'dispatch-retro',
+      created: 42,
+      sourceKind: 'task',
+      sourceRef: '/tmp/TASK.md',
+      trustKind: 'trusted',
+      supersedes: ['old-retro'],
+      items: [
+        { kind: 'requirement', text: 'Preserve source provenance.' },
+        { kind: 'requirement', text: 'Run independent review.' },
+        { kind: 'output', text: 'engine/src/domain/experience.ts' },
+        { kind: 'audit', text: 'Independent review found a separator-counting bug.' },
+        { kind: 'audit', text: 'Full retest green.' },
+      ],
+    });
+    expect(renderExperiencePolicyCard(card)).toContain('[experience:policy] dispatch retro');
+    expect(renderExperiencePolicyCard(card)).toContain(
+      '- requirement: Preserve source provenance.',
+    );
+  });
+
+  it('falls back to compact body lines when no known task sections exist', () => {
+    const card = experiencePolicyCard({
+      workspace: 'code',
+      title: 'manual note',
+      slug: 'manual-note',
+      created: 7,
+      sourceKind: 'manual',
+      trustKind: 'trusted',
+      body: 'Check cache before curl.\nThen update docs.',
+    });
+
+    expect(card.items).toEqual([
+      { kind: 'body', text: 'Check cache before curl.' },
+      { kind: 'body', text: 'Then update docs.' },
+    ]);
   });
 });
 

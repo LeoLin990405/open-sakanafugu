@@ -106,6 +106,17 @@ writeFileSync(
     "    if (query && !text.includes(query)) continue;",
     "    process.stdout.write('[experience] ' + field(text, 'title') + '\\n' + bodyOf(text) + '\\n\\n');",
     "  }",
+    "} else if (cmd === 'policy') {",
+    "  const ws = rest[0];",
+    "  const slug = rest[1];",
+    "  const dir = path.join(store, ws);",
+    "  if (!fs.existsSync(dir)) process.exit(0);",
+    "  const files = slug && !slug.startsWith('--') ? [path.join(dir, slug + '.md')] : fs.readdirSync(dir).filter((name) => name.endsWith('.md')).map((name) => path.join(dir, name));",
+    "  for (const file of files) {",
+    "    if (!fs.existsSync(file)) continue;",
+    "    const text = fs.readFileSync(file, 'utf8');",
+    "    process.stdout.write('[experience:policy] ' + field(text, 'title') + '\\n- body: ' + bodyOf(text).split(/\\r?\\n/u).filter(Boolean)[0] + '\\n');",
+    "  }",
     "} else if (cmd === 'show') {",
     "  const ws = rest[0];",
     "  const slug = rest[1];",
@@ -197,6 +208,11 @@ suite.ok("learned task can be recalled", () =>
     task,
   ),
 );
+suite.ok("policy renders learned task as a card", () =>
+  run(experience, ["policy", "code", "task-retro"]).stdout.includes(
+    "[experience:policy] task-retro",
+  ),
+);
 suite.ok("workspace context injects experience", () =>
   run(workspace, ["context", "code"]).stdout.includes("defensive copy"),
 );
@@ -208,6 +224,11 @@ suite.ok("wrapper delegates to engine CLI", () =>
 suite.ok("wrapper delegates learn to engine CLI", () =>
   readFileSync(process.env.FUGUE_EXPERIENCE_CALLS, "utf8").includes(
     `experience learn code task-retro --task ${task}\n`,
+  ),
+);
+suite.ok("wrapper delegates policy to engine CLI", () =>
+  readFileSync(process.env.FUGUE_EXPERIENCE_CALLS, "utf8").includes(
+    "experience policy code task-retro\n",
   ),
 );
 

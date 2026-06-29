@@ -15,7 +15,7 @@ The TS CLI (`fugue`, clipanion) exposes `fugue version`, `fugue doctor`,
 `fugue cache init|put|fail|status|barrier|collect|list|resume`, `fugue plan`,
 `fugue task new|log|done`, `fugue template`,
 `fugue workspace list|show|model|context`,
-`fugue experience add|audit|eval|learn|list|promote|recall|show`, `fugue summary`,
+`fugue experience add|audit|eval|learn|list|policy|promote|recall|show`, `fugue summary`,
 `fugue runtime check|adapt`, `fugue run set|round|status|next|clear`,
 `fugue loop init|record|decide|next|status`, `fugue goal template|show|check`,
 `fugue agent-registry template|validate|list|resolve`, and

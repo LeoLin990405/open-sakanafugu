@@ -24,7 +24,7 @@ const help = `fuguectl — fugue workflow control-plane entrypoint.
   fuguectl skills index|list|match|show|inject|validate|forge
   fuguectl workspace list|show|model|context <name> [context: --experience-source manual|task --experience-source-ref ref --experience-limit n --experience-budget-chars n --experience-trust trusted|all --experience-max-age-days n]
   fuguectl agents template|validate [file]|list [file]|resolve [file] <id>
-  fuguectl experience add|audit|eval|learn|list|promote|recall|show <ws> [add: --trust trusted|untrusted --source-ref ref --supersedes slug] [audit: --json --max-age-days n] [eval: --cases file --json] [learn: --supersedes slug] [promote: <slug> --source-ref ref --confirm-source-ref ref] [recall: --query q --source manual|task --source-ref ref --trust trusted|untrusted|all --min-score n --max-age-days n --include-superseded --explain --json --metadata-only]
+  fuguectl experience add|audit|eval|learn|list|policy|promote|recall|show <ws> [add: --trust trusted|untrusted --source-ref ref --supersedes slug] [audit: --json --max-age-days n] [eval: --cases file --json] [learn: --supersedes slug] [policy: <slug>|--query q --json] [promote: <slug> --source-ref ref --confirm-source-ref ref] [recall: --query q --source manual|task --source-ref ref --trust trusted|untrusted|all --min-score n --max-age-days n --include-superseded --explain --json --metadata-only]
   fuguectl plan "<goal>" [--harness fugue-cc|codex|opencode|agy|lite] [--models a,b,c] [--out <dir>] [--timeout-ms n] [--allow-partial] [--codex-clean] [--harness-arg x] [--codex-arg x] [--opencode-arg x] [--agy-arg x] [--task <file>]  writes <out>/summary.json
   fuguectl goal template|show|check <spec>
   fuguectl loop init|record|decide|status

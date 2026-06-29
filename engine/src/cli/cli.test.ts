@@ -1966,6 +1966,136 @@ describe('fugue CLI', () => {
       expect(metadataOnly.out).not.toContain('Use dispatch provenance anchors.');
     });
 
+    it('renders exact and recalled experience policy cards', async () => {
+      await mkdir(join(store, 'code'), { recursive: true });
+      await writeFile(
+        join(store, 'code', 'dispatch-retro.md'),
+        [
+          '---',
+          'workspace: code',
+          'title: Dispatch retro',
+          'created: 123',
+          'sourceKind: task',
+          'sourceRef: /tmp/TASK.md',
+          'trustKind: trusted',
+          '---',
+          'Source task: /tmp/TASK.md',
+          'Task: TASK: dispatch retro',
+          'Status: DONE (completed 2026-06-29)',
+          '',
+          'Requirements:',
+          '- Preserve source provenance.',
+          '- Run independent review.',
+          '',
+          'Output files:',
+          '- engine/src/domain/experience.ts',
+          '',
+          'Reusable audit notes:',
+          '- Full retest green.',
+        ].join('\n'),
+        'utf8',
+      );
+      await writeFile(
+        join(store, 'code', 'untrusted-retro.md'),
+        [
+          '---',
+          'workspace: code',
+          'title: Untrusted retro',
+          'created: 124',
+          'sourceKind: manual',
+          'sourceRef: browser note',
+          'trustKind: untrusted',
+          '---',
+          'Requirements:',
+          '- Keep this out of trusted policy recall.',
+        ].join('\n'),
+        'utf8',
+      );
+      const exact = await run(['experience', 'policy', '--store', store, 'code', 'dispatch-retro']);
+      const recalled = await run([
+        'experience',
+        'policy',
+        '--store',
+        store,
+        'code',
+        '--query',
+        'provenance review',
+        '--json',
+      ]);
+      const exactFiltered = await run([
+        'experience',
+        'policy',
+        '--store',
+        store,
+        'code',
+        'untrusted-retro',
+        '--trust',
+        'trusted',
+      ]);
+      const missingSelector = await run(['experience', 'policy', '--store', store, 'code']);
+      const bothSelectors = await run([
+        'experience',
+        'policy',
+        '--store',
+        store,
+        'code',
+        'dispatch-retro',
+        '--query',
+        'review',
+      ]);
+      const slugWithEmptyQuery = await run([
+        'experience',
+        'policy',
+        '--store',
+        store,
+        'code',
+        'dispatch-retro',
+        '--query',
+        '',
+      ]);
+      type PolicyCard = Array<{
+        readonly workspace: string;
+        readonly title: string;
+        readonly slug: string;
+        readonly sourceKind: string;
+        readonly sourceRef?: string;
+        readonly trustKind: string;
+        readonly items: ReadonlyArray<{ readonly kind: string; readonly text: string }>;
+      }>;
+      const cards = JSON.parse(recalled.out) as PolicyCard;
+
+      expect(exact.code).toBe(0);
+      expect(exact.out).toContain('[experience:policy] Dispatch retro');
+      expect(exact.out).toContain('- requirement: Preserve source provenance.');
+      expect(exact.out).toContain('- output: engine/src/domain/experience.ts');
+      expect(recalled.code).toBe(0);
+      expect(cards).toEqual([
+        {
+          workspace: 'code',
+          title: 'Dispatch retro',
+          slug: 'dispatch-retro',
+          created: 123,
+          sourceKind: 'task',
+          sourceRef: '/tmp/TASK.md',
+          trustKind: 'trusted',
+          items: [
+            { kind: 'requirement', text: 'Preserve source provenance.' },
+            { kind: 'requirement', text: 'Run independent review.' },
+            { kind: 'output', text: 'engine/src/domain/experience.ts' },
+            { kind: 'audit', text: 'Full retest green.' },
+          ],
+        },
+      ]);
+      expect(exactFiltered.code).toBe(0);
+      expect(exactFiltered.out).toBe('');
+      expect(missingSelector.code).toBe(1);
+      expect(missingSelector.err).toContain('experience policy needs <slug> or --query');
+      expect(bothSelectors.code).toBe(1);
+      expect(bothSelectors.err).toContain('either <slug> or --query');
+      expect(slugWithEmptyQuery.code).toBe(1);
+      expect(slugWithEmptyQuery.err).toContain('non-empty --query');
+    });
+
     it('evaluates recall cases as machine-readable precision metrics', async () => {
       await mkdir(join(store, 'code'), { recursive: true });
       await writeFile(

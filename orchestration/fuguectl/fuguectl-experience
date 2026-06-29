@@ -4,15 +4,16 @@ import { runSubcommandBridge } from "./fuguectl-node-bridge.mjs";
 runSubcommandBridge({
   argv: process.argv.slice(2),
   command: "experience",
-  allowed: ["add", "learn", "list", "recall", "show"],
+  allowed: ["add", "learn", "list", "policy", "recall", "show"],
   help: `fuguectl-experience — TypeScript Experience memory bridge
 
 add  <ws> "<title>" [--from <file>]   store one experience
 learn <ws> "<title>" --task <file>    distill a completed TASK audit
 list [<ws>]                           list experiences
+policy <ws> (<slug>|--query kw)       render policy cards
 recall <ws> [--query kw] [--limit N]  fetch relevant experiences
 show <ws> <slug>                      print one
 `,
   unknown: (subcommand) =>
-    `fuguectl-experience: unknown subcommand '${subcommand}' (add|learn|list|recall|show)`,
+    `fuguectl-experience: unknown subcommand '${subcommand}' (add|learn|list|policy|recall|show)`,
 });
