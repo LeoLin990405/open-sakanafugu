@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import {
   countLines,
@@ -67,6 +67,50 @@ suite.ok("help prints loop commands", () => help.includes("record <round>"));
 suite.ok(
   "help does not call engine",
   () => countLines(readFileSync(calls, "utf8")) === 3,
+);
+
+// review → loop verdict: `record --review <file>` derives verdict + finding count
+// from a review packet so the loop consumes review output instead of the operator
+// hand-typing the verdict. Exercised against the real engine CLI (not the shim).
+const engineMain = resolve(here, "..", "..", "engine", "dist", "cli", "main.js");
+const rcache = join(tmp, "review-cache");
+run(process.execPath, [engineMain, "loop", "--cache", rcache, "init", "--max", "3"]);
+
+const needsFixReview = join(tmp, "review-needsfix.md");
+writeFileSync(needsFixReview, "VERDICT: NEEDS_FIX\n- F1: bug in foo\n- F2: missing test\n");
+const recNeedsFix = run(process.execPath, [
+  engineMain, "loop", "--cache", rcache, "record", "1", "--gate", "fail", "--review", needsFixReview,
+]);
+suite.ok("--review derives NEEDSFIX verdict and finding count", () =>
+  recNeedsFix.stdout.includes("verdict=NEEDSFIX") &&
+  recNeedsFix.stdout.includes("findings=2"),
+);
+
+const acceptReview = join(tmp, "review-accept.md");
+writeFileSync(acceptReview, "VERDICT: ACCEPTED\n");
+const recAccept = run(process.execPath, [
+  engineMain, "loop", "--cache", rcache, "record", "2", "--gate", "pass", "--review", acceptReview,
+]);
+suite.ok("--review derives ACCEPTED verdict with zero findings", () =>
+  recAccept.stdout.includes("verdict=ACCEPTED") &&
+  recAccept.stdout.includes("findings=0"),
+);
+
+const recOverride = run(process.execPath, [
+  engineMain, "loop", "--cache", rcache, "record", "3", "--gate", "pass",
+  "--review", needsFixReview, "--verdict", "ACCEPTED",
+]);
+suite.ok("explicit --verdict overrides the review-derived verdict", () =>
+  recOverride.stdout.includes("verdict=ACCEPTED"),
+);
+
+const unknownReview = join(tmp, "review-unknown.md");
+writeFileSync(unknownReview, "some review text with no verdict line\n");
+const recUnknown = run(process.execPath, [
+  engineMain, "loop", "--cache", rcache, "record", "4", "--gate", "pass", "--review", unknownReview,
+]);
+suite.ok("--review with UNKNOWN verdict → non-0 (asks for explicit --verdict)", () =>
+  recUnknown.status !== 0,
 );
 
 suite.done();

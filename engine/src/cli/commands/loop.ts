@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import { join as joinPath } from 'node:path';
 
@@ -5,6 +6,7 @@ import { Command, Option } from 'clipanion';
 
 import type { LoopRound, VerdictKind } from '../../domain/loop.js';
 import { adviceFor, decideLoop } from '../../domain/loop-decide.js';
+import { reviewPacket } from '../../domain/review-packet.js';
 import { NodeFileSystem } from '../../infra/node-file-system.js';
 import { defaultCacheRoot } from '../default-paths.js';
 
@@ -281,8 +283,48 @@ export class LoopCommand extends Command {
     return 0;
   }
 
+  /**
+   * Derive `--verdict`/`--findings` from a structured review packet so the loop
+   * consumes review output instead of the operator hand-typing the verdict.
+   * `--review <file>` reads a review (raw or already-rendered), runs reviewPacket,
+   * and injects the verdict + finding count — unless the operator passed them
+   * explicitly, in which case the manual values win. Gate stays manual (it is the
+   * build/test result, orthogonal to the review verdict).
+   */
+  private async augmentWithReview(
+    args: readonly string[],
+  ): Promise<{ readonly ok: true; readonly args: readonly string[] } | { readonly ok: false; readonly message: string }> {
+    const reviewIndex = args.indexOf('--review');
+    if (reviewIndex === -1) return { ok: true, args };
+    const file = args[reviewIndex + 1];
+    if (file === undefined || file.length === 0)
+      return { ok: false, message: '--review needs a file path' };
+    const content = await new NodeFileSystem().read(file);
+    if (content === null) return { ok: false, message: `--review file not found: ${file}` };
+    const packet = reviewPacket(content, {
+      sourceRef: file,
+      sourceSha256: createHash('sha256').update(content, 'utf8').digest('hex'),
+    });
+    if (packet.verdict === 'UNKNOWN')
+      return {
+        ok: false,
+        message: 'review packet verdict is UNKNOWN; pass --verdict explicitly',
+      };
+    const rest = [...args.slice(0, reviewIndex), ...args.slice(reviewIndex + 2)];
+    const injected: string[] = [];
+    if (!rest.includes('--verdict')) {
+      injected.push('--verdict', packet.verdict === 'ACCEPTED' ? 'ACCEPTED' : 'NEEDSFIX');
+    }
+    if (!rest.includes('--findings')) {
+      injected.push('--findings', String(packet.findingCount));
+    }
+    return { ok: true, args: [...rest, ...injected] };
+  }
+
   private async record(store: LegacyLoopStore, args: readonly string[]): Promise<number> {
-    const parsed = this.parseRecordOptions(args);
+    const augmented = await this.augmentWithReview(args);
+    if (!augmented.ok) return this.error(augmented.message);
+    const parsed = this.parseRecordOptions(augmented.args);
     if (!parsed.ok) return this.error(parsed.message);
     const result = await store.record(parsed.options);
     this.context.stdout.write(
