@@ -62,10 +62,7 @@ const isCleanFirstPass = (rounds: readonly LoopRound[]): boolean => {
   if (rounds.length !== 1) return false;
   const only = rounds[0];
   return (
-    only !== undefined &&
-    only.gate === 'pass' &&
-    only.verdict === 'ACCEPTED' &&
-    only.findings === 0
+    only !== undefined && only.gate === 'pass' && only.verdict === 'ACCEPTED' && only.findings === 0
   );
 };
 
