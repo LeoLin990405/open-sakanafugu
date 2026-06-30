@@ -103,7 +103,7 @@ export function App() {
             <button
               className="btn btn-secondary"
               disabled={!canStep}
-              onClick={() => tid !== null && run(buildIntegrateCmd(tid), () => dispatch({ type: 'integrate-done' }))}
+              onClick={() => tid !== null && run(buildIntegrateCmd(tid, '.', 'cc-deepseek'), () => dispatch({ type: 'integrate-done' }))}
             >
               Integrate
             </button>

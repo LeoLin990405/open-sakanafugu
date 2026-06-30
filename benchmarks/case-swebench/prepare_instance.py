@@ -42,9 +42,21 @@ def main():
     # apply the test patch (the tests added/changed by the gold PR)
     tp = repo / "_swebench_test.patch"
     tp.write_text(rec["test_patch"])
-    if sh(["git", "apply", "--whitespace=nowarn", "_swebench_test.patch"], repo, check=False).returncode != 0:
-        sh(["git", "apply", "--3way", "--whitespace=nowarn", "_swebench_test.patch"], repo, check=False)
+    applied = sh(["git", "apply", "--whitespace=nowarn", "_swebench_test.patch"], repo, check=False)
+    if applied.returncode != 0:
+        applied = sh(["git", "apply", "--3way", "--whitespace=nowarn", "_swebench_test.patch"], repo, check=False)
     tp.unlink(missing_ok=True)
+    # If the gold test patch never applied, the instance is NOT ready — bailing
+    # out here prevents the solver/eval from running against a repo with no gold
+    # tests and reporting a silently wrong SWE-bench verdict.
+    if applied.returncode != 0:
+        print(json.dumps({
+            "instance_id": instance_id,
+            "ready": False,
+            "error": "failed to apply gold test_patch (normal and --3way)",
+            "stderr": applied.stderr[-2000:],
+        }, indent=2))
+        sys.exit(1)
 
     fail_to_pass = json.loads(rec["FAIL_TO_PASS"])
     pass_to_pass = json.loads(rec.get("PASS_TO_PASS", "[]"))

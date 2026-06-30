@@ -14,7 +14,9 @@ export const buildDispatchCmd = (
   goal: string,
 ): string => `fuguectl dispatch ${agent} --harness ${harness} --task ${taskFile} --prompt "${goal}"`;
 
-export const buildIntegrateCmd = (taskFile: string): string => `fuguectl integrate --task ${taskFile}`;
+// integrate requires both --work (the repo) and --agents (whose worktrees to pick); it exits 2 without them.
+export const buildIntegrateCmd = (taskFile: string, work: string, agents: string): string =>
+  `fuguectl integrate --work ${work} --agents "${agents}" --task ${taskFile}`;
 
 export const buildReviewCmd = (taskFile: string): string =>
   `fuguectl dispatch coder --harness codex --task ${taskFile} --prompt "Independent review of the changes for this task"`;

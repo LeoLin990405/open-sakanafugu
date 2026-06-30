@@ -82,8 +82,10 @@ EOF
   fi
   # 3) record + ask the state machine
   VERDICT_TOKEN="NEEDSFIX"; [ "${V/ACCEPTED/}" != "$V" ] && VERDICT_TOKEN="ACCEPTED"
+  # loop record takes no --task (only loop init does); and no `|| true` — a failed
+  # record must surface, not be masked into a later "no round recorded yet".
   "$FO" loop record "$round" --gate "$GATE" --verdict "$VERDICT_TOKEN" --findings "$N" --ask-user 0 \
-    --sha "$(git rev-parse HEAD)" --task "$F" || true
+    --sha "$(git rev-parse HEAD)"
   case "$("$FO" loop decide 2>/dev/null | head -1)" in
     DONE|ESCALATE_MAX|ESCALATE_NONCONV) break ;;
   esac
