@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Runtime-Node%20%3E%3D18.18-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js >= 18.18" />
   <img src="https://img.shields.io/badge/Engine-TypeScript-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript engine" />
   <img src="https://img.shields.io/badge/fuguectl-29%20%E5%A5%97%E6%B5%8B%E8%AF%95-7c3aed?style=for-the-badge" alt="29 套 fuguectl 测试" />
-  <img src="https://img.shields.io/badge/assertions-408-brightgreen?style=for-the-badge" alt="408 个 fuguectl 断言" />
+  <img src="https://img.shields.io/badge/assertions-410-brightgreen?style=for-the-badge" alt="410 个 fuguectl 断言" />
   <a href="https://github.com/BicaMindLabs/FuguNano/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/BicaMindLabs/FuguNano/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status" /></a>
   <img src="https://img.shields.io/badge/license-Apache--2.0-yellowgreen?style=for-the-badge" alt="Apache-2.0 license" />
 </p>
@@ -200,7 +200,7 @@ memory、skills……):
 
 ## 命令面
 
-`orchestration/fuguectl/fuguectl` 是生产入口:28 个子命令、29 套测试、408 个 wrapper 断言。
+`orchestration/fuguectl/fuguectl` 是生产入口:28 个子命令、29 套测试、410 个 wrapper 断言。
 
 | 区域          | 命令                                                                                                                                                                                                                                                                                                                         |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

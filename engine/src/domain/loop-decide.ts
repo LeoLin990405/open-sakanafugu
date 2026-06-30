@@ -53,6 +53,19 @@ const decision = (state: LoopState, last: LoopRound): LoopDecision => ({
   advice: adviceFor(state, last),
 });
 
+/**
+ * A clean first pass: the only round so far, gate green, an ACCEPTED verdict with
+ * zero findings. There is nothing for a second confirmation pass to catch, so
+ * with `fastPathClean` enabled this can finish in one round (see LoopConfig).
+ */
+const isCleanFirstPass = (rounds: readonly LoopRound[]): boolean => {
+  if (rounds.length !== 1) return false;
+  const only = rounds[0];
+  return (
+    only !== undefined && only.gate === 'pass' && only.verdict === 'ACCEPTED' && only.findings === 0
+  );
+};
+
 export function decideLoop(rounds: readonly LoopRound[], config: LoopConfig): LoopDecision {
   const last = rounds[rounds.length - 1];
   if (last === undefined) throw new Error('no rounds recorded');
@@ -61,6 +74,9 @@ export function decideLoop(rounds: readonly LoopRound[], config: LoopConfig): Lo
   const accepted = rounds.filter((round) => round.verdict === 'ACCEPTED').length;
 
   if (last.verdict === 'ACCEPTED') {
+    if (config.fastPathClean === true && isCleanFirstPass(rounds)) {
+      return decision('DONE', last);
+    }
     return decision(accepted >= confirmations ? 'DONE' : 'CONFIRM', last);
   }
 

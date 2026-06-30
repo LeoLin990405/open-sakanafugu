@@ -2,7 +2,7 @@ import { Command, Option } from 'clipanion';
 
 import { runRecon } from '../../adapters/doctor/recon.js';
 import type { DoctorReport } from '../../domain/doctor.js';
-import { recommend } from '../../domain/doctor.js';
+import { fanoutReadiness, recommend } from '../../domain/doctor.js';
 import { NodeCommandRunner } from '../../infra/node-command-runner.js';
 import { BACKEND_CREDENTIAL_SPECS } from '../backend-credentials.js';
 
@@ -57,6 +57,18 @@ export class DoctorCommand extends Command {
     out.write('\nrecommended:\n');
     for (const rec of recommend(report)) {
       out.write(`  • ${rec}\n`);
+    }
+
+    const fanout = fanoutReadiness(report);
+    if (fanout.ready) {
+      out.write(
+        '\nfan-out: ✓ ready — fuguectl fleet up → fuguectl dispatch (one per agent) → fuguectl cache barrier N → fuguectl integrate\n',
+      );
+    } else {
+      out.write('\nfan-out: ✗ blocked — clear these to run parallel fan-out:\n');
+      for (const gap of fanout.blockers) {
+        out.write(`  • ${gap.detail}\n      fix: ${gap.fix}\n`);
+      }
     }
   }
 }

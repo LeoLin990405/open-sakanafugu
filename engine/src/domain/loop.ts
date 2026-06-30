@@ -35,6 +35,16 @@ export interface LoopConfig {
   readonly maxRounds: number;
   /** Independent ACCEPTED passes required to reach DONE (default 2 — verification is probabilistic). */
   readonly confirmations?: number;
+  /**
+   * Opt-in (default off): finish a *clean* first pass in one round instead of
+   * forcing a second confirmation. A clean first pass — the only round, gate
+   * green, zero findings — has nothing for a second independent pass to catch,
+   * so the confirmation is pure overhead on simple tasks. Off by default because
+   * the supporting evidence is directional (n=1); enable it when an operator
+   * judges the confirmation cost not worth it. Any run with findings or a
+   * NEEDS_FIX still requires the full `confirmations` passes.
+   */
+  readonly fastPathClean?: boolean;
 }
 
 /** The outcome of a decision: the state, its process exit code, and human-facing advice. */

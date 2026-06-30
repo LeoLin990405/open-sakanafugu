@@ -113,4 +113,27 @@ suite.ok("--review with UNKNOWN verdict → non-0 (asks for explicit --verdict)"
   recUnknown.status !== 0,
 );
 
+// fast-path-clean (opt-in): a clean first pass (gate pass + ACCEPTED + 0 findings)
+// finishes in one round (DONE, exit 0) instead of forcing a confirmation pass —
+// removing the orchestration overhead on simple tasks. Off by default.
+const fastCache = join(tmp, "fast-cache");
+run(process.execPath, [engineMain, "loop", "--cache", fastCache, "init", "--max", "3", "--fast-path-clean"]);
+run(process.execPath, [
+  engineMain, "loop", "--cache", fastCache, "record", "1", "--gate", "pass", "--verdict", "ACCEPTED", "--findings", "0",
+]);
+const fastDecide = run(process.execPath, [engineMain, "loop", "--cache", fastCache, "decide"]);
+suite.ok("--fast-path-clean: clean first pass → DONE (exit 0)", () =>
+  fastDecide.status === 0 && fastDecide.stdout.includes("DONE"),
+);
+
+const slowCache = join(tmp, "slow-cache");
+run(process.execPath, [engineMain, "loop", "--cache", slowCache, "init", "--max", "3"]);
+run(process.execPath, [
+  engineMain, "loop", "--cache", slowCache, "record", "1", "--gate", "pass", "--verdict", "ACCEPTED", "--findings", "0",
+]);
+const slowDecide = run(process.execPath, [engineMain, "loop", "--cache", slowCache, "decide"]);
+suite.ok("default (no flag): same clean first pass → CONFIRM, not DONE", () =>
+  slowDecide.stdout.includes("CONFIRM"),
+);
+
 suite.done();

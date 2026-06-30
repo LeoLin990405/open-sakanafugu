@@ -6,7 +6,8 @@ runSimpleBridge({
   command: "loop",
   help: `fuguectl-loop — TypeScript review-fix loop bridge
 
-init  [--max N] [--task F] [--best-sha SHA] [--best-n N]
+init  [--max N] [--task F] [--best-sha SHA] [--best-n N] [--fast-path-clean]
+      (--fast-path-clean: a clean first pass — gate pass + ACCEPTED + 0 findings — finishes in 1 round, no confirmation overhead)
 record <round> --gate pass|fail --verdict ACCEPTED|NEEDSFIX --findings N [--ask-user K] [--sha SHA] [--same-class] [--note "..."]
        (or --review <file> to derive --verdict + --findings from a review packet; explicit flags override)
 decide|next

@@ -26,6 +26,7 @@ interface LoopMeta {
   readonly taskFile: string;
   readonly bestSha: string;
   readonly bestN: number;
+  readonly fastPathClean: boolean;
 }
 
 interface RecordOptions {
@@ -156,6 +157,7 @@ class LegacyLoopStore {
       taskFile: fields.task_file ?? '',
       bestSha: fields.best_sha ?? '',
       bestN: parseInteger(fields.best_n) ?? -1,
+      fastPathClean: fields.fast_path_clean === '1',
     };
   }
 
@@ -222,6 +224,7 @@ class LegacyLoopStore {
         `task_file=${meta.taskFile}`,
         `best_sha=${meta.bestSha}`,
         `best_n=${String(meta.bestN)}`,
+        `fast_path_clean=${meta.fastPathClean ? '1' : '0'}`,
         '',
       ].join('\n'),
     );
@@ -241,7 +244,7 @@ export class LoopCommand extends Command {
     if (sub === undefined || sub === '-h' || sub === '--help') {
       this.context.stdout.write(
         [
-          'fugue loop init [--max N] [--task F] [--best-sha SHA] [--best-n N]',
+          'fugue loop init [--max N] [--task F] [--best-sha SHA] [--best-n N] [--fast-path-clean]',
           'fugue loop record <round> --gate pass|fail --verdict ACCEPTED|NEEDSFIX --findings N [--ask-user K] [--sha SHA] [--same-class] [--note "..."]',
           'fugue loop decide|next',
           'fugue loop status',
@@ -357,7 +360,10 @@ export class LoopCommand extends Command {
     const meta = await store.requireMeta();
     const rounds = await store.rounds();
     if (rounds.length === 0) return this.error('no round recorded yet');
-    const decision = decideLoop(rounds, { maxRounds: meta.maxRounds });
+    const decision = decideLoop(rounds, {
+      maxRounds: meta.maxRounds,
+      fastPathClean: meta.fastPathClean,
+    });
     const last = rounds[rounds.length - 1];
     if (last === undefined) return this.error('no round recorded yet');
     this.context.stdout.write(
@@ -414,10 +420,13 @@ export class LoopCommand extends Command {
     let taskFile = '';
     let bestSha = '';
     let bestN = -1;
+    let fastPathClean = false;
     for (let index = 0; index < args.length; index += 1) {
       const arg = args[index];
       const value = args[index + 1] ?? '';
-      if (arg === '--max') {
+      if (arg === '--fast-path-clean') {
+        fastPathClean = true;
+      } else if (arg === '--max') {
         const parsed = parsePositiveInteger(value);
         if (parsed === null) return { ok: false, message: '--max needs integer ≥1' };
         maxRounds = parsed;
@@ -437,7 +446,7 @@ export class LoopCommand extends Command {
         return { ok: false, message: `unknown argument '${arg ?? ''}'` };
       }
     }
-    return { ok: true, meta: { maxRounds, taskFile, bestSha, bestN } };
+    return { ok: true, meta: { maxRounds, taskFile, bestSha, bestN, fastPathClean } };
   }
 
   private parseRecordOptions(

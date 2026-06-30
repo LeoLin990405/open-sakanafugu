@@ -27,6 +27,56 @@ const liteHarnesses = (report: DoctorReport): readonly string[] => {
   return harnesses;
 };
 
+export type FanoutBlocker = 'no-fugue-cc-provider' | 'too-few-backends' | 'no-reviewer';
+
+export interface FanoutGap {
+  readonly kind: FanoutBlocker;
+  readonly detail: string;
+  /** The exact command/step to clear this blocker. */
+  readonly fix: string;
+}
+
+export interface FanoutReadiness {
+  readonly ready: boolean;
+  readonly readyBackends: number;
+  readonly blockers: readonly FanoutGap[];
+}
+
+/**
+ * Concrete readiness for the flagship capability — multi-agent file-level
+ * parallel fan-out (fugue-cc fleet → backends implement in parallel → join
+ * barrier → integrate). Turns "configure the fleet" into an ordered checklist
+ * with the exact fix for each gap, so the parallel path is easy to actually run.
+ * Needs the fugue-cc provider, ≥2 ready backends to parallelize over, and an
+ * independent reviewer.
+ */
+export const fanoutReadiness = (report: DoctorReport): FanoutReadiness => {
+  const ready = readyBackends(report);
+  const blockers: FanoutGap[] = [];
+  if (!hasRole(report, 'fugue-cc')) {
+    blockers.push({
+      kind: 'no-fugue-cc-provider',
+      detail: 'fugue-cc provider runtime not detected',
+      fix: 'cp orchestration/fugue-cc/provider.config.example <project>/.fugue-cc/provider.config; cd <project>; fugue-cc',
+    });
+  }
+  if (ready < 2) {
+    blockers.push({
+      kind: 'too-few-backends',
+      detail: `${String(ready)}/2 ready backends — need ≥2 to parallelize over`,
+      fix: 'install ≥2 model launchers and add their keys to ~/.config/cc-model-secrets.env',
+    });
+  }
+  if (!hasRole(report, 'codex')) {
+    blockers.push({
+      kind: 'no-reviewer',
+      detail: 'no independent Codex reviewer (generation ≠ review)',
+      fix: 'install codex, or set another strong independent backend as the reviewer',
+    });
+  }
+  return { ready: blockers.length === 0, readyBackends: ready, blockers };
+};
+
 /** Recommended workflow given what's installed (pure port of the bash advisor). */
 export const recommend = (report: DoctorReport): readonly string[] => {
   const recs: string[] = [];

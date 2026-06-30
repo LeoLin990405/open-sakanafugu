@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { DoctorReport } from './doctor.js';
-import { readyBackends, recommend } from './doctor.js';
+import { fanoutReadiness, readyBackends, recommend } from './doctor.js';
 
 const report = (
   roles: ReadonlyArray<readonly [string, boolean]>,
@@ -97,5 +97,47 @@ describe('recommend', () => {
     expect(recommend(report([['claude', true]], [['a', false, false]]))[0]).toContain(
       'no ready backend',
     );
+  });
+});
+
+describe('fanoutReadiness', () => {
+  it('is ready with the fugue-cc provider, >=2 ready backends, and codex', () => {
+    const r = report(
+      [
+        ['fugue-cc', true],
+        ['codex', true],
+      ],
+      [
+        ['a', true, true],
+        ['b', true, true],
+      ],
+    );
+    const fanout = fanoutReadiness(r);
+    expect(fanout.ready).toBe(true);
+    expect(fanout.blockers).toHaveLength(0);
+    expect(fanout.readyBackends).toBe(2);
+  });
+
+  it('reports each missing piece with a concrete fix', () => {
+    const fanout = fanoutReadiness(report([], [['a', true, true]]));
+    expect(fanout.ready).toBe(false);
+    const kinds = fanout.blockers.map((blocker) => blocker.kind);
+    expect(kinds).toContain('no-fugue-cc-provider');
+    expect(kinds).toContain('too-few-backends'); // 1/2 ready
+    expect(kinds).toContain('no-reviewer');
+    expect(fanout.blockers.every((blocker) => blocker.fix.length > 0)).toBe(true);
+  });
+
+  it('blocks on too-few-backends even when fugue-cc and codex are present', () => {
+    const r = report(
+      [
+        ['fugue-cc', true],
+        ['codex', true],
+      ],
+      [['a', true, true]],
+    );
+    const fanout = fanoutReadiness(r);
+    expect(fanout.ready).toBe(false);
+    expect(fanout.blockers.map((blocker) => blocker.kind)).toEqual(['too-few-backends']);
   });
 });

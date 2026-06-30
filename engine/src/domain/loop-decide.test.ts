@@ -264,3 +264,36 @@ describe('bestRound', () => {
     );
   });
 });
+
+describe('decideLoop fastPathClean (opt-in)', () => {
+  const cleanFirst = round({ round: 1, gate: 'pass', verdict: 'ACCEPTED', findings: 0 });
+
+  it('finishes a clean first pass in one round when enabled', () => {
+    expect(decideLoop([cleanFirst], { maxRounds: 3, fastPathClean: true }).state).toBe('DONE');
+  });
+
+  it('still requires confirmation for a clean first pass when disabled (default)', () => {
+    expect(decideLoop([cleanFirst], { maxRounds: 3 }).state).toBe('CONFIRM');
+    expect(decideLoop([cleanFirst], { maxRounds: 3, fastPathClean: false }).state).toBe('CONFIRM');
+  });
+
+  it('does not fast-path an ACCEPTED first pass that still had findings', () => {
+    const withFindings = round({ round: 1, gate: 'pass', verdict: 'ACCEPTED', findings: 2 });
+    expect(decideLoop([withFindings], { maxRounds: 3, fastPathClean: true }).state).toBe('CONFIRM');
+  });
+
+  it('does not fast-path a clean ACCEPTED that is not the first round', () => {
+    const fixedThenAccepted = [
+      round({ round: 1, gate: 'fail', verdict: 'NEEDS_FIX', findings: 1 }),
+      round({ round: 2, gate: 'pass', verdict: 'ACCEPTED', findings: 0 }),
+    ];
+    expect(decideLoop(fixedThenAccepted, { maxRounds: 3, fastPathClean: true }).state).toBe(
+      'CONFIRM',
+    );
+  });
+
+  it('does not fast-path when the gate failed', () => {
+    const gateFail = round({ round: 1, gate: 'fail', verdict: 'ACCEPTED', findings: 0 });
+    expect(decideLoop([gateFail], { maxRounds: 3, fastPathClean: true }).state).toBe('CONFIRM');
+  });
+});
