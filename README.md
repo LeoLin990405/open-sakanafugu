@@ -20,6 +20,7 @@
 <p align="center">
   <a href="#quick-start">Quick Start</a> |
   <a href="#how-it-works">How It Works</a> |
+  <a href="#verifier-aware-routing">Routing</a> |
   <a href="#command-surface">Commands</a> |
   <a href="docs/WORKFLOW.md">Workflow</a> |
   <a href="docs/SELF_HARNESS.md">Self-Harness</a> |
@@ -45,6 +46,7 @@ harness itself. Every step is backed by deterministic evidence, not model prose.
 | Agent loops spin forever                        | The repair loop is bounded, stateful, and reviewer-gated.           |
 | Prompt/runtime safety is invisible              | Guard packets and action certificates create local evidence.        |
 | Improvements disappear after one run            | Experience memory and the evolution loop feed lessons back in.      |
+| Fan-out output gets trusted blindly             | Selector routes each fan-out: trust a gated pick, spot-check bare consensus, escalate the rest. |
 
 ## How It Works
 
@@ -180,6 +182,36 @@ runtimes are opt-in and excluded from `preflight --all`.
 A new agent is a registry entry plus a preflight probe and a smoke test, not a
 core change. Every harness satisfies the same port, so it inherits the guard and
 certificate gates for free.
+
+## Verifier-aware Routing
+
+Fanning out to many cheap models is only as good as the check behind it.
+`Selector` (`engine/src/domain/selector.ts`) is a pure-domain router that decides
+what to do with a best-of-N fan-out: `TRUST` (a verifier vouched for a pick),
+`TRUST_SPOT_CHECK` (the fleet agrees but nothing verified it), or `ESCALATE`
+(hand off to a premium model). The rules are grounded in a benchmark, not a hunch:
+
+- **With a cheap verifier** (unit tests / a reference solution) best-of-N is
+  effectively free — the gate picks the passing candidate. A fleet of small
+  models matched premium single models across 100 graded algorithm tasks.
+- **Without one, agreement is the only signal — and it fails _correlated_.** On
+  security, impossible-requirement, and subtle-correctness traps the whole fleet
+  tends to fall into the same hole, so consensus there is confidently wrong.
+  Those categories escalate outright, and unverified consensus is never clean
+  `TRUST` — only `TRUST_SPOT_CHECK`. Confidence is Laplace-smoothed so a 5/5
+  fleet reads as 0.86, not certainty, and escalations are ordered by
+  disagreement so premium budget goes to the least-certain tasks first.
+- **A skeptic playbook** ([templates/skeptic.md](orchestration/fuguectl/templates/skeptic.md))
+  pre-injects category-level challenge rules distilled from known traps. On a
+  held-out set of unseen traps it lifted small-model trap-avoidance from 59% to
+  84% with zero regressions — the rules generalize because they target
+  categories, not memorized questions.
+
+Each mechanism maps to a specific paper (EDV, Agentic Abstention, OmniOPD,
+SkillHarness). The router is verifier-agnostic: it consumes whatever
+`verified`/`label` signals a task can cheaply produce, which is exactly the
+"verifier ladder" — real gate → synthesized gate → skeptic pass → judge →
+consensus → escalate.
 
 ## Evidence-gated Evolution
 
